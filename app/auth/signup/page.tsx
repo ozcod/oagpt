@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { authClient } from "@/lib/auth-client";
 
 import { Button } from "@/components/ui/button";
 
@@ -42,12 +43,40 @@ export default function SignupForm() {
     null,
   );
 
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
   const form = useForm({
     defaultValues: { username: "", email: "", password: "" },
     validators: {
       onChange: signupSchema,
     },
-    onSubmit: async ({ value }) => {},
+    onSubmit: async ({ value }) => {
+      await authClient.signUp.email(
+        {
+          name: value.username,
+          email: value.email, // user email address
+          password: value.password, // user password -> min 8 characters by default
+          callbackURL: "/", // A URL to redirect to after the user verifies their email (optional)
+        },
+        {
+          onRequest: (ctx) => {
+            setIsLoading(true);
+          },
+          onSuccess: (ctx) => {
+            setIsLoading(false);
+            toast.success(
+              "Signup successful! Please check your email to verify.",
+            );
+            router.push("/");
+          },
+          onError: (ctx) => {
+            setIsLoading(false);
+            toast.error("Signup failed!");
+            alert(ctx.error.message);
+          },
+        },
+      );
+    },
   });
 
   return (
@@ -234,7 +263,7 @@ export default function SignupForm() {
                     className="mt-2 h-13 w-full rounded-full bg-[#ececec] text-[16px] font-semibold text-black hover:bg-white disabled:opacity-50"
                     disabled={!canSubmit || !isDirty}
                   >
-                    {isSubmitting ? (
+                    {isSubmitting || isLoading ? (
                       <Loader2 className="size-5 animate-spin" />
                     ) : (
                       "Sign Up"
