@@ -40,6 +40,16 @@ export default function LoginForm() {
   );
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
+  const handleSocialSignIn = async (provider: SocialProvider) => {
+    try {
+      await authClient.signIn.social({
+        provider: provider,
+      });
+    } catch (err) {
+      toast.error(`Sign in with ${provider} failed!`);
+    }
+  };
+
   const form = useForm({
     defaultValues: { email: "", password: "" },
     validators: {
@@ -99,7 +109,10 @@ export default function LoginForm() {
               variant="outline"
               disabled={false}
               className="h-13 w-full rounded-xl border-[#424242] bg-transparent text-[15px] font-normal transition-colors hover:bg-[#2f2f2f] hover:text-white disabled:opacity-70"
-              onClick={() => {}}
+              onClick={() => {
+                setPendingProvider("google");
+                handleSocialSignIn("google");
+              }}
             >
               {pendingProvider === "google" ? (
                 <Loader2 className="mr-2 size-5 animate-spin" />
@@ -114,7 +127,10 @@ export default function LoginForm() {
               variant="outline"
               disabled={false}
               className="h-13 w-full rounded-xl border-[#424242] bg-transparent text-[15px] font-normal transition-colors hover:bg-[#2f2f2f] hover:text-white disabled:opacity-70"
-              onClick={() => {}}
+              onClick={() => {
+                setPendingProvider("github");
+                handleSocialSignIn("github");
+              }}
             >
               {pendingProvider === "github" ? (
                 <Loader2 className="mr-2 size-5 animate-spin" />
