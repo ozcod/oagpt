@@ -127,7 +127,10 @@ export default function LoginForm() {
               variant="outline"
               disabled={false}
               className="h-13 w-full rounded-xl border-[#424242] bg-transparent text-[15px] font-normal transition-colors hover:bg-[#2f2f2f] hover:text-white disabled:opacity-70"
-              onClick={() => {}}
+              onClick={() => {
+                setPendingProvider("github");
+                handleSocialSignIn("github");
+              }}
             >
               {pendingProvider === "github" ? (
                 <Loader2 className="mr-2 size-5 animate-spin" />
