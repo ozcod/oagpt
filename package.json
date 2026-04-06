@@ -11,6 +11,10 @@
     "migration:migrate": "drizzle-kit push --config drizzle.config.ts"
   },
   "dependencies": {
+    "@langchain/core": "^1.1.39",
+    "@langchain/google-genai": "^2.1.26",
+    "@langchain/langgraph": "^1.2.7",
+    "@langchain/openai": "^1.4.2",
     "@radix-ui/react-use-controllable-state": "^1.2.2",
     "@rive-app/react-webgl2": "^4.27.0",
     "@streamdown/cjk": "^1.0.2",
