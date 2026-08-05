@@ -5,10 +5,11 @@ type ModelProvider = "openai" | "google" | "anthropic";
 type ModelTier = "free" | "subscription";
 
 export type ModelId =
-  | "gpt-5-mini"
-  | "gpt-5-nano"
-  | "gemini-3.1-pro-preview"
-  | "gemini-2.5-flash";
+  | "gemini-2.5-flash"
+  | "gemini-2.5-pro"
+  | "gemini-2.0-flash-lite"
+  | "gpt-4o-mini"
+  | "gpt-3.5-turbo";
 
 type ModelConfig = {
   provider: ModelProvider;
@@ -17,25 +18,30 @@ type ModelConfig = {
 };
 
 export const MODEL_REGISTRY: Record<ModelId, ModelConfig> = {
-  "gpt-5-mini": {
-    provider: "openai",
-    tier: "free",
-    options: { reasoning: { effort: "minimal" } },
-  },
-  "gpt-5-nano": {
-    provider: "openai",
-    tier: "free",
-    options: { reasoning: { effort: "minimal" } },
-  },
-  "gemini-3.1-pro-preview": {
-    provider: "google",
-    tier: "free",
-    options: { temparature: 0 },
-  },
   "gemini-2.5-flash": {
     provider: "google",
     tier: "free",
-    options: { temparature: 0 },
+    options: { temperature: 0 },
+  },
+  "gemini-2.5-pro": {
+    provider: "google",
+    tier: "free",
+    options: { temperature: 0 },
+  },
+  "gemini-2.0-flash-lite": {
+    provider: "google",
+    tier: "free",
+    options: { temperature: 0 },
+  },
+  "gpt-4o-mini": {
+    provider: "openai",
+    tier: "free",
+    options: { temperature: 0 },
+  },
+  "gpt-3.5-turbo": {
+    provider: "openai",
+    tier: "free",
+    options: { temperature: 0 },
   },
 };
 

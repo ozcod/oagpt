@@ -1,14 +1,44 @@
-import { HumanMessage } from "@langchain/core/messages";
-import { agent } from "./graph";
+import { HumanMessage, AIMessage, SystemMessage } from "@langchain/core/messages";
+import { getDynamicModel, ModelId } from "./model";
 
 export async function POST(request: Request) {
-  const result = await agent.invoke({
-    messages: [new HumanMessage("hi, how are you")],
-  });
+  try {
+    const body = await request.json();
+    const { messages, model: modelId } = body;
 
-  for (const message of result.messages) {
-    console.log(`[${message.type}]: ${message.text}]`);
+    const selectedModel = getDynamicModel(
+      (modelId as ModelId) || "gemini-2.5-flash"
+    );
+
+    // Convert input messages to LangChain messages
+    const lcMessages = (messages || []).map(
+      (m: { role: string; content: string }) => {
+        if (m.role === "user") {
+          return new HumanMessage(m.content);
+        }
+        return new AIMessage(m.content);
+      }
+    );
+
+    const response = await selectedModel.invoke([
+      new SystemMessage("You are a helpful AI assistant."),
+      ...lcMessages,
+    ]);
+
+    const responseText =
+      typeof response.content === "string"
+        ? response.content
+        : JSON.stringify(response.content);
+
+    return Response.json({
+      role: "assistant",
+      content: responseText,
+    });
+  } catch (error: any) {
+    console.error("Chat API error:", error);
+    return Response.json(
+      { error: error?.message || "Failed to generate AI response" },
+      { status: 500 }
+    );
   }
-
-  return Response.json({ message: "ok" });
 }
