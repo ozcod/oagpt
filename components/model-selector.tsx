@@ -1,7 +1,9 @@
 "use client";
 
 import { memo, useCallback, useState } from "react";
-import { CheckIcon, Lock } from "lucide-react";
+import { CheckIcon, ChevronDown, Lock } from "lucide-react";
+import { useModel } from "@/context/model-context";
+import { ModelId } from "@/app/api/chat/model";
 
 import {
   ModelSelector,
@@ -21,36 +23,44 @@ import { cn } from "@/lib/utils";
 
 const models = [
   {
-    chef: "OpenAI",
-    chefSlug: "openai",
-    id: "gpt-5-mini",
-    name: "GPT 5 mini",
-    providers: ["openai", "azure"],
-    isProOnly: false,
-  },
-  {
-    chef: "OpenAI",
-    chefSlug: "openai",
-    id: "gpt-5-nano",
-    name: "GPT 5 nano",
-    providers: ["openai", "azure"],
+    chef: "Google",
+    chefSlug: "google",
+    id: "gemini-2.5-flash",
+    name: "Gemini 2.5 Flash",
+    providers: ["google"],
     isProOnly: false,
   },
   {
     chef: "Google",
     chefSlug: "google",
-    id: "gemini-3.1-pro-preview",
-    name: "Gemini 3.1 Pro",
-    providers: ["google", "google-vertex"],
-    isProOnly: true,
+    id: "gemini-2.5-pro",
+    name: "Gemini 2.5 Pro",
+    providers: ["google"],
+    isProOnly: false,
   },
   {
-    chef: "Anthropic",
-    chefSlug: "anthropic",
-    id: "claude-sonnet-4-20250514",
-    name: "Claude 4 Sonnet",
-    providers: ["anthropic", "azure", "google-vertex", "amazon-bedrock"],
-    isProOnly: true,
+    chef: "Google",
+    chefSlug: "google",
+    id: "gemini-2.0-flash-lite",
+    name: "Gemini 2.0 Flash Lite",
+    providers: ["google"],
+    isProOnly: false,
+  },
+  {
+    chef: "OpenAI",
+    chefSlug: "openai",
+    id: "gpt-4o-mini",
+    name: "GPT-4o Mini",
+    providers: ["openai"],
+    isProOnly: false,
+  },
+  {
+    chef: "OpenAI",
+    chefSlug: "openai",
+    id: "gpt-3.5-turbo",
+    name: "GPT-3.5 Turbo",
+    providers: ["openai"],
+    isProOnly: false,
   },
 ];
 
@@ -105,16 +115,15 @@ ModelItem.displayName = "ModelItem";
 
 export const ModelSelectorComponent = () => {
   const [open, setOpen] = useState(false);
-  
-  const selectedModel = "gpt-5-mini"
-  const setSelectedModel = (modelId:string)=>{
-
-  }
+  const { selectedModel, setSelectedModel } = useModel();
   const userHaveProPlan = false;
-  const handleModelSelect = useCallback((id: string) => {
-    setSelectedModel(id);
-    setOpen(false);
-  }, []);
+  const handleModelSelect = useCallback(
+    (id: string) => {
+      setSelectedModel(id as ModelId);
+      setOpen(false);
+    },
+    [setSelectedModel]
+  );
 
   const selectedModelData = models.find((model) => model.id === selectedModel);
 
@@ -125,15 +134,16 @@ export const ModelSelectorComponent = () => {
     <div className="flex size-full items-center justify-center">
       <ModelSelector onOpenChange={setOpen} open={open}>
         <ModelSelectorTrigger asChild>
-          <Button className="w-50 justify-between" variant="outline">
-            <div className="flex items-center gap-2">
+          <Button className="w-54 justify-between bg-[#2f2f2f] text-white border-[#424242] hover:bg-[#3f3f3f]" variant="outline">
+            <div className="flex items-center gap-2 min-w-0">
               {selectedModelData?.chefSlug && (
                 <ModelSelectorLogo provider={selectedModelData.chefSlug} />
               )}
               {selectedModelData?.name && (
-                <ModelSelectorName>{selectedModelData.name}</ModelSelectorName>
+                <ModelSelectorName className="truncate">{selectedModelData.name}</ModelSelectorName>
               )}
             </div>
+            <ChevronDown className="size-4 shrink-0 opacity-60 ml-2" />
           </Button>
         </ModelSelectorTrigger>
         <ModelSelectorContent>
