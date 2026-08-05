@@ -90,10 +90,10 @@ export default function LoginForm() {
             className="h-10 w-10 mx-auto"
             height={40}
             width={40}
-            alt="CodersGPT"
+            alt="OAGPT"
           />
           <CardTitle className="text-[32px] font-semibold tracking-tight text-[#ececec]">
-            Log in CodersGPT
+            Log in OAGPT
           </CardTitle>
           <CardDescription className="mx-auto max-w-80 text-[15px] leading-relaxed text-[#b4b4b4]">
             You&apos;ll get smarter responses and can upload files, images, and

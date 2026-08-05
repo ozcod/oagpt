@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ChatThread, getStoredThreads } from "@/lib/chat-storage";
+import { authClient } from "@/lib/auth-client";
 
 interface SearchModalProps {
   open: boolean;
@@ -19,7 +20,9 @@ interface SearchModalProps {
 export function SearchModal({ open, onOpenChange }: SearchModalProps) {
   const [query, setQuery] = useState("");
   const router = useRouter();
-  const threads = getStoredThreads();
+  const { data: session } = authClient.useSession();
+  const userId = session?.user?.id || session?.user?.email;
+  const threads = getStoredThreads(userId);
 
   const filteredThreads = query.trim()
     ? threads.filter((thread) => {

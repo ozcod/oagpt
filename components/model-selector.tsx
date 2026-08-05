@@ -113,10 +113,14 @@ const ModelItem = memo(
 
 ModelItem.displayName = "ModelItem";
 
+import { usePathname } from "next/navigation";
+
 export const ModelSelectorComponent = () => {
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const { selectedModel, setSelectedModel } = useModel();
   const userHaveProPlan = false;
+
   const handleModelSelect = useCallback(
     (id: string) => {
       setSelectedModel(id as ModelId);
@@ -124,6 +128,10 @@ export const ModelSelectorComponent = () => {
     },
     [setSelectedModel]
   );
+
+  if (pathname === "/upgrade") {
+    return null;
+  }
 
   const selectedModelData = models.find((model) => model.id === selectedModel);
 

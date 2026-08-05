@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { MessageSquare, Trash2 } from "lucide-react";
@@ -17,6 +17,7 @@ import {
   deleteStoredThread,
   getStoredThreads,
 } from "@/lib/chat-storage";
+import { authClient } from "@/lib/auth-client";
 
 export function ThreadsLists() {
   const [threads, setThreads] = useState<ChatThread[]>([]);
@@ -24,23 +25,32 @@ export function ThreadsLists() {
   const router = useRouter();
   const currentThreadId = params?.thread_id as string | undefined;
 
-  const loadThreads = () => {
-    setThreads(getStoredThreads());
-  };
+  const { data: session } = authClient.useSession();
+  const userId = session?.user?.id || session?.user?.email;
+
+  const loadThreads = useCallback(() => {
+    if (userId) {
+      setThreads(getStoredThreads(userId));
+    } else {
+      setThreads([]);
+    }
+  }, [userId]);
 
   useEffect(() => {
     loadThreads();
     const handleUpdate = () => loadThreads();
     window.addEventListener("chat_threads_updated", handleUpdate);
     return () => window.removeEventListener("chat_threads_updated", handleUpdate);
-  }, []);
+  }, [loadThreads]);
 
   const handleDelete = (e: React.MouseEvent, id: string) => {
     e.preventDefault();
     e.stopPropagation();
-    deleteStoredThread(id);
-    if (currentThreadId === id) {
-      router.push("/");
+    if (userId) {
+      deleteStoredThread(id, userId);
+      if (currentThreadId === id) {
+        router.push("/");
+      }
     }
   };
 

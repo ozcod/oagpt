@@ -23,17 +23,30 @@ import { SidebarFooterComponent } from "./sidebar-footer";
 import ThreadsLists from "./threads-list";
 import { SearchModal } from "./search-modal";
 
+import { useSidebar } from "@/components/ui/sidebar";
+
 export function AppSidebar({
   ...props
 }: React.ComponentProps<typeof Sidebar>) {
   const [searchOpen, setSearchOpen] = useState(false);
   const router = useRouter();
+  const { state, setOpen } = useSidebar();
+
+  const handleSidebarClick = () => {
+    if (state === "collapsed") {
+      setOpen(true);
+    }
+  };
 
   return (
     <>
       <Sidebar
         collapsible="icon"
-        className="bg-[#171717] border-none text-sidebar-foreground transition-all duration-300 ease-in-out"
+        onClick={handleSidebarClick}
+        className={cn(
+          "bg-[#171717] border-none text-sidebar-foreground transition-all duration-300 ease-in-out",
+          state === "collapsed" && "cursor-pointer hover:bg-[#202020]"
+        )}
         {...props}
       >
         <SidebarHeader className="px-2 pt-3.5">

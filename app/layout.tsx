@@ -14,29 +14,29 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const TITLE = "CodersGPT";
-const DESCRIPTION = "chatbot for coders";
+const TITLE = "OAGPT";
+const DESCRIPTION = "AI Chatbot";
 const BASE_URL = "http://localhost:3000";
 
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),
   title: TITLE,
   description: DESCRIPTION,
-  keywords: "CodersGPT,codersgpt",
+  keywords: "OAGPT,oagpt",
   authors: [
     {
-      name: "codersgyan",
+      name: "OAGPT",
       url: BASE_URL,
     },
   ],
-  creator: "codersgyan",
+  creator: "OAGPT",
   openGraph: {
     type: "website",
     locale: "en_US",
     url: BASE_URL,
     title: TITLE,
     description: DESCRIPTION,
-    siteName: "CodersGPT",
+    siteName: "OAGPT",
     images: [
       {
         url: `${BASE_URL}/og.jpg`,

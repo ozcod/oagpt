@@ -55,9 +55,9 @@ export const MessageContent = ({
 }: MessageContentProps) => (
   <div
     className={cn(
-      "is-user:dark flex w-fit min-w-0 max-w-full flex-col gap-2 overflow-hidden text-sm",
-      "group-[.is-user]:ml-auto group-[.is-user]:rounded-lg group-[.is-user]:bg-secondary group-[.is-user]:px-4 group-[.is-user]:py-3 group-[.is-user]:text-foreground",
-      "group-[.is-assistant]:text-foreground",
+      "is-user:dark flex w-fit min-w-0 max-w-full flex-col gap-3 overflow-hidden text-sm",
+      "group-[.is-user]:ml-auto group-[.is-user]:rounded-2xl group-[.is-user]:bg-secondary group-[.is-user]:px-5 group-[.is-user]:py-3.5 group-[.is-user]:text-foreground",
+      "group-[.is-assistant]:w-full group-[.is-assistant]:text-foreground group-[.is-assistant]:px-0 group-[.is-assistant]:py-3 group-[.is-assistant]:my-2 group-[.is-assistant]:bg-transparent group-[.is-assistant]:border-none group-[.is-assistant]:shadow-none group-[.is-assistant]:text-base group-[.is-assistant]:leading-relaxed",
       className
     )}
     {...props}
@@ -328,7 +328,7 @@ export const MessageResponse = memo(
   ({ className, ...props }: MessageResponseProps) => (
     <Streamdown
       className={cn(
-        "size-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
+        "size-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 space-y-4 my-1 text-base leading-relaxed text-[#ececec]",
         className
       )}
       plugins={streamdownPlugins}
