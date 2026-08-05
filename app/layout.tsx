@@ -20,7 +20,10 @@ const BASE_URL = "http://localhost:3000";
 
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),
-  title: TITLE,
+  title: {
+    default: "Home | OAGPT",
+    template: "%s | OAGPT",
+  },
   description: DESCRIPTION,
   keywords: "OAGPT,oagpt",
   authors: [

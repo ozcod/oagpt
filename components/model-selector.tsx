@@ -39,6 +39,22 @@ const models = [
     isProOnly: false,
   },
   {
+    chef: "DeepSeek",
+    chefSlug: "deepseek",
+    id: "deepseek-r1-free",
+    name: "DeepSeek R1 (Free)",
+    providers: ["openrouter"],
+    isProOnly: false,
+  },
+  {
+    chef: "Meta",
+    chefSlug: "meta",
+    id: "llama-3-3-70b-free",
+    name: "Llama 3.3 70B (Free)",
+    providers: ["openrouter"],
+    isProOnly: false,
+  },
+  {
     chef: "Google",
     chefSlug: "google",
     id: "gemini-2.0-flash-lite",
@@ -131,6 +147,15 @@ export const ModelSelectorComponent = () => {
 
   if (pathname === "/upgrade") {
     return null;
+  }
+
+  if (pathname === "/images") {
+    return (
+      <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#2f2f2f] text-white border border-[#424242] text-xs font-medium">
+        <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
+        <span>FLUX 1 Schnell</span>
+      </div>
+    );
   }
 
   const selectedModelData = models.find((model) => model.id === selectedModel);

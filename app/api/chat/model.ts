@@ -58,6 +58,34 @@ function getDefaultModel() {
 function createModel(modelId: ModelId, config: ModelConfig) {
   const base = { model: modelId, ...config.options };
 
+  if (modelId === "deepseek-r1-free") {
+    if (process.env.OPENROUTER_API_KEY) {
+      return new ChatOpenAI({
+        model: "deepseek/deepseek-r1:free",
+        temperature: 0,
+        apiKey: process.env.OPENROUTER_API_KEY,
+        configuration: {
+          baseURL: "https://openrouter.ai/api/v1",
+        },
+      });
+    }
+    return getDefaultModel();
+  }
+
+  if (modelId === "llama-3-3-70b-free") {
+    if (process.env.OPENROUTER_API_KEY) {
+      return new ChatOpenAI({
+        model: "meta-llama/llama-3.3-70b-instruct:free",
+        temperature: 0,
+        apiKey: process.env.OPENROUTER_API_KEY,
+        configuration: {
+          baseURL: "https://openrouter.ai/api/v1",
+        },
+      });
+    }
+    return getDefaultModel();
+  }
+
   if (config.provider === "openai") {
     return new ChatOpenAI({
       ...base,
