@@ -8,6 +8,8 @@ export type ModelId =
   | "gemini-2.5-flash"
   | "gpt-4o-mini"
   | "gemini-2.0-flash-lite"
+  | "deepseek-r1-free"
+  | "llama-3-3-70b-free"
   | "gemini-2.5-pro"
   | "gpt-4o"
   | "claude-3-5-sonnet";
@@ -34,6 +36,16 @@ export const MODEL_REGISTRY: Record<ModelId, ModelConfig> = {
     tier: "free",
     options: { temperature: 0 },
   },
+  "deepseek-r1-free": {
+    provider: "openai",
+    tier: "free",
+    options: { temperature: 0 },
+  },
+  "llama-3-3-70b-free": {
+    provider: "openai",
+    tier: "free",
+    options: { temperature: 0 },
+  },
   "gemini-2.5-pro": {
     provider: "google",
     tier: "subscription",
@@ -52,6 +64,16 @@ export const MODEL_REGISTRY: Record<ModelId, ModelConfig> = {
 };
 
 function getDefaultModel() {
+  if (process.env.OPENROUTER_API_KEY) {
+    return new ChatOpenAI({
+      model: "openai/gpt-4o-mini",
+      maxRetries: 2,
+      apiKey: process.env.OPENROUTER_API_KEY,
+      configuration: {
+        baseURL: "https://openrouter.ai/api/v1",
+      },
+    });
+  }
   if (process.env.GOOGLE_API_KEY) {
     return new ChatGoogleGenerativeAI({
       model: "gemini-2.5-flash",
@@ -68,7 +90,45 @@ function getDefaultModel() {
 function createModel(modelId: ModelId, config: ModelConfig) {
   const base = { model: modelId, ...config.options };
 
+  if (modelId === "deepseek-r1-free") {
+    if (process.env.OPENROUTER_API_KEY) {
+      return new ChatOpenAI({
+        model: "deepseek/deepseek-r1:free",
+        temperature: 0,
+        apiKey: process.env.OPENROUTER_API_KEY,
+        configuration: {
+          baseURL: "https://openrouter.ai/api/v1",
+        },
+      });
+    }
+    return getDefaultModel();
+  }
+
+  if (modelId === "llama-3-3-70b-free") {
+    if (process.env.OPENROUTER_API_KEY) {
+      return new ChatOpenAI({
+        model: "meta-llama/llama-3.3-70b-instruct:free",
+        temperature: 0,
+        apiKey: process.env.OPENROUTER_API_KEY,
+        configuration: {
+          baseURL: "https://openrouter.ai/api/v1",
+        },
+      });
+    }
+    return getDefaultModel();
+  }
+
   if (config.provider === "openai") {
+    if (process.env.OPENROUTER_API_KEY) {
+      return new ChatOpenAI({
+        model: `openai/${modelId}`,
+        temperature: 0,
+        apiKey: process.env.OPENROUTER_API_KEY,
+        configuration: {
+          baseURL: "https://openrouter.ai/api/v1",
+        },
+      });
+    }
     if (process.env.OPENAI_API_KEY) {
       return new ChatOpenAI({
         ...base,
@@ -85,6 +145,16 @@ function createModel(modelId: ModelId, config: ModelConfig) {
     }
     return getDefaultModel();
   } else if (config.provider === "anthropic") {
+    if (process.env.OPENROUTER_API_KEY) {
+      return new ChatOpenAI({
+        model: "anthropic/claude-3.5-sonnet",
+        temperature: 0,
+        apiKey: process.env.OPENROUTER_API_KEY,
+        configuration: {
+          baseURL: "https://openrouter.ai/api/v1",
+        },
+      });
+    }
     return getDefaultModel();
   }
 

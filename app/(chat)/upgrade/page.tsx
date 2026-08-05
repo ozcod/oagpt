@@ -153,8 +153,8 @@ export default function UpgradePage() {
             className="w-full mt-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-medium h-9 text-xs rounded-xl transition-all shadow-lg"
           >
             {upgraded ? (
-              <span className="flex items-center gap-2 text-green-300">
-                <Check className="h-4 w-4" /> Welcome to Plus!
+              <span className="flex items-center gap-2 text-amber-300">
+                <Sparkles className="h-4 w-4" /> This feature will be available soon!
               </span>
             ) : isSubmitting ? (
               "Processing..."

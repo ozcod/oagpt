@@ -327,12 +327,6 @@ export const ChatInterfaceNew = ({ threadId }: ChatInterfaceProps) => {
                       </MessageContent>
                     </Message>
 
-                    {msg.role === "assistant" && !isErrorMessage && (
-                      <p className="text-[11px] text-[#666] mt-1 px-1 select-none">
-                        OAGPT can make mistakes. Check important info.
-                      </p>
-                    )}
-
                     {/* Show Edit / Retry icons ONLY for the LAST user message */}
                     {isLastUser && !isEditingLast && !isLoading && (
                       <div className="flex items-center justify-end gap-1.5 px-1 mt-0.5">

@@ -1,0 +1,18 @@
+# OAGPT (CodersGPT UI)
+
+> Next-generation AI Chat, Coding Assistant, and Image Studio interface.
+
+## Core Features
+
+- [Chat Interface](https://oagpt.com/): Conversational AI assistant supporting Gemini 2.5 Flash, DeepSeek R1, Llama 3.3 70B, GPT-4o, and Claude 3.5 Sonnet.
+- [AI Image Studio](https://oagpt.com/images): High-resolution AI image generation powered by FLUX 1 Schnell.
+- [OAGPT Plus Subscription](https://oagpt.com/upgrade): Premium intelligence upgrade plan.
+- [Authentication](https://oagpt.com/auth/signin): Secure login and signup powered by Better Auth.
+
+## Technology Stack
+
+- Framework: Next.js (App Router, Turbopack)
+- Styling: Tailwind CSS & Radix UI / Shadcn UI components
+- Database: PostgreSQL with Drizzle ORM
+- Authentication: Better Auth
+- LLM Integration: LangChain JS, Google Generative AI, OpenAI, and OpenRouter
