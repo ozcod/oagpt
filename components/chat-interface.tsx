@@ -88,9 +88,16 @@ export const ChatInterfaceNew = ({ threadId }: ChatInterfaceProps) => {
 
   const lastUserIndex = messages.findLastIndex((m) => m.role === "user");
 
+  const [newResponseIndex, setNewResponseIndex] = useState<number | null>(null);
+
+  const hasAssistantResponse = messages.some(
+    (m) => m.role === "assistant" && !m.content.startsWith("Error:")
+  );
+
   // Load thread messages on mount or when threadId/userId changes
   useEffect(() => {
     setActiveThreadId(threadId);
+    setNewResponseIndex(null);
     if (threadId && userId) {
       const thread = getStoredThread(threadId, userId);
       if (thread) {
@@ -106,6 +113,7 @@ export const ChatInterfaceNew = ({ threadId }: ChatInterfaceProps) => {
     const handleNewChatEvent = () => {
       setActiveThreadId(undefined);
       setMessages([]);
+      setNewResponseIndex(null);
       setIsEditingLast(false);
       window.history.replaceState(null, "", "/");
     };
@@ -196,6 +204,7 @@ export const ChatInterfaceNew = ({ threadId }: ChatInterfaceProps) => {
 
       const finalMessages = [...updatedMessages, assistantMsg];
       setMessages(finalMessages);
+      setNewResponseIndex(finalMessages.length - 1);
 
       if (userId) {
         saveStoredThread(
@@ -220,6 +229,7 @@ export const ChatInterfaceNew = ({ threadId }: ChatInterfaceProps) => {
       };
       const finalMessages = [...updatedMessages, errorMsg];
       setMessages(finalMessages);
+      setNewResponseIndex(finalMessages.length - 1);
       if (userId) {
         saveStoredThread(
           {
@@ -281,7 +291,7 @@ export const ChatInterfaceNew = ({ threadId }: ChatInterfaceProps) => {
                           ) : (
                             <AssistantMessageContent
                               content={msg.content}
-                              isNew={index === messages.length - 1}
+                              isNew={index === newResponseIndex}
                             />
                           )
                         ) : isLastUser && isEditingLast ? (
@@ -316,6 +326,12 @@ export const ChatInterfaceNew = ({ threadId }: ChatInterfaceProps) => {
                         )}
                       </MessageContent>
                     </Message>
+
+                    {msg.role === "assistant" && !isErrorMessage && (
+                      <p className="text-[11px] text-[#666] mt-1 px-1 select-none">
+                        OAGPT can make mistakes. Check important info.
+                      </p>
+                    )}
 
                     {/* Show Edit / Retry icons ONLY for the LAST user message */}
                     {isLastUser && !isEditingLast && !isLoading && (
@@ -374,6 +390,11 @@ export const ChatInterfaceNew = ({ threadId }: ChatInterfaceProps) => {
                   <span>Stop generating</span>
                 </Button>
               </div>
+            )}
+            {hasAssistantResponse && (
+              <p className="text-center text-[12px] text-[#777] mb-2 select-none">
+                OAGPT can make mistakes. Check important info.
+              </p>
             )}
             <InputContainer onSendMessage={(t) => handleSendMessage(t)} isLoading={isLoading} />
           </div>
