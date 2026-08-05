@@ -9,7 +9,10 @@ export type ModelId =
   | "gemini-2.5-pro"
   | "gemini-2.0-flash-lite"
   | "gpt-4o-mini"
-  | "gpt-3.5-turbo";
+  | "gpt-4o"
+  | "claude-3-5-sonnet"
+  | "deepseek-r1-free"
+  | "llama-3-3-70b-free";
 
 type ModelConfig = {
   provider: ModelProvider;
@@ -25,7 +28,7 @@ export const MODEL_REGISTRY: Record<ModelId, ModelConfig> = {
   },
   "gemini-2.5-pro": {
     provider: "google",
-    tier: "free",
+    tier: "subscription",
     options: { temperature: 0 },
   },
   "gemini-2.0-flash-lite": {
@@ -38,7 +41,22 @@ export const MODEL_REGISTRY: Record<ModelId, ModelConfig> = {
     tier: "free",
     options: { temperature: 0 },
   },
-  "gpt-3.5-turbo": {
+  "gpt-4o": {
+    provider: "openai",
+    tier: "subscription",
+    options: { temperature: 0 },
+  },
+  "claude-3-5-sonnet": {
+    provider: "anthropic",
+    tier: "subscription",
+    options: { temperature: 0 },
+  },
+  "deepseek-r1-free": {
+    provider: "openai",
+    tier: "free",
+    options: { temperature: 0 },
+  },
+  "llama-3-3-70b-free": {
     provider: "openai",
     tier: "free",
     options: { temperature: 0 },
