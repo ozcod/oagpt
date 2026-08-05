@@ -33,18 +33,18 @@ const models = [
   {
     chef: "Google",
     chefSlug: "google",
-    id: "gemini-2.5-pro",
-    name: "Gemini 2.5 Pro",
+    id: "gemini-2.0-flash-lite",
+    name: "Gemini 2.0 Flash Lite",
     providers: ["google"],
     isProOnly: false,
   },
   {
     chef: "Google",
     chefSlug: "google",
-    id: "gemini-2.0-flash-lite",
-    name: "Gemini 2.0 Flash Lite",
+    id: "gemini-2.5-pro",
+    name: "Gemini 2.5 Pro (Pro)",
     providers: ["google"],
-    isProOnly: false,
+    isProOnly: true,
   },
   {
     chef: "OpenAI",
@@ -57,10 +57,18 @@ const models = [
   {
     chef: "OpenAI",
     chefSlug: "openai",
-    id: "gpt-3.5-turbo",
-    name: "GPT-3.5 Turbo",
+    id: "gpt-4o",
+    name: "GPT-4o (Pro)",
     providers: ["openai"],
-    isProOnly: false,
+    isProOnly: true,
+  },
+  {
+    chef: "Anthropic",
+    chefSlug: "anthropic",
+    id: "claude-3-5-sonnet",
+    name: "Claude 3.5 Sonnet (Pro)",
+    providers: ["anthropic"],
+    isProOnly: true,
   },
 ];
 
