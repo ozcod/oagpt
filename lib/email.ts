@@ -1,8 +1,5 @@
 import { Resend } from "resend";
 
-const resendApiKey = process.env.RESEND_API_KEY;
-const resend = resendApiKey ? new Resend(resendApiKey) : null;
-
 export async function sendEmail({
   to,
   subject,
@@ -12,10 +9,11 @@ export async function sendEmail({
   subject: string;
   html: string;
 }) {
+  const apiKey = process.env.RESEND_API_KEY;
   const fromEmail =
     process.env.RESEND_FROM_EMAIL || "OAGPT Security <onboarding@resend.dev>";
 
-  if (!resend) {
+  if (!apiKey || apiKey.includes("your_resend_api_key")) {
     console.log("--------------------------------------------------");
     console.log("✉️ [RESEND_API_KEY NOT SET] Email verification link:");
     console.log(`To: ${to}`);
@@ -23,6 +21,8 @@ export async function sendEmail({
     console.log("--------------------------------------------------");
     return;
   }
+
+  const resend = new Resend(apiKey);
 
   try {
     const { data, error } = await resend.emails.send({
