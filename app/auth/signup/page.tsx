@@ -76,9 +76,9 @@ export default function SignupForm() {
           onSuccess: (ctx) => {
             setIsLoading(false);
             toast.success(
-              "Signup successful! Please check your email to verify.",
+              "Account created! Please check your email to verify your address.",
             );
-            router.push("/");
+            router.push("/auth/verify-email");
           },
           onError: (ctx) => {
             setIsLoading(false);

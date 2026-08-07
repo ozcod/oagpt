@@ -36,6 +36,9 @@ export default async function ChatPageLayout({
   if (!session) {
     redirect("/auth/signin");
   }
+  if (!session.user.emailVerified) {
+    redirect("/auth/verify-email");
+  }
 
   return (
     <ModelProvider>
