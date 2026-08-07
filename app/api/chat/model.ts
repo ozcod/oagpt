@@ -7,7 +7,6 @@ type ModelTier = "free" | "subscription";
 export type ModelId =
   | "gemini-2.5-flash"
   | "gemini-2.5-pro"
-  | "gemini-2.0-flash-lite"
   | "gpt-4o-mini"
   | "gpt-4o"
   | "claude-3-5-sonnet"
@@ -29,11 +28,6 @@ export const MODEL_REGISTRY: Record<ModelId, ModelConfig> = {
   "gemini-2.5-pro": {
     provider: "google",
     tier: "subscription",
-    options: { temperature: 0 },
-  },
-  "gemini-2.0-flash-lite": {
-    provider: "google",
-    tier: "free",
     options: { temperature: 0 },
   },
   "gpt-4o-mini": {
@@ -64,11 +58,16 @@ export const MODEL_REGISTRY: Record<ModelId, ModelConfig> = {
 };
 
 function getDefaultModel() {
+  if (process.env.GOOGLE_API_KEY) {
+    return new ChatGoogleGenerativeAI({
+      model: "gemini-2.5-flash",
+      temperature: 0,
+      apiKey: process.env.GOOGLE_API_KEY,
+    });
+  }
   return new ChatOpenAI({
-    model: "gemini-2.5-flash",
-    maxTokens: undefined,
-    timeout: undefined,
-    maxRetries: 2,
+    model: "gpt-4o-mini",
+    temperature: 0,
     apiKey: process.env.OPENAI_API_KEY,
   });
 }
@@ -99,6 +98,26 @@ function createModel(modelId: ModelId, config: ModelConfig) {
         configuration: {
           baseURL: "https://openrouter.ai/api/v1",
         },
+      });
+    }
+    return getDefaultModel();
+  }
+
+  if (modelId === "gpt-4o-mini" || modelId === "gpt-4o") {
+    if (process.env.OPENROUTER_API_KEY) {
+      return new ChatOpenAI({
+        model: `openai/${modelId}`,
+        temperature: 0,
+        apiKey: process.env.OPENROUTER_API_KEY,
+        configuration: {
+          baseURL: "https://openrouter.ai/api/v1",
+        },
+      });
+    }
+    if (process.env.OPENAI_API_KEY) {
+      return new ChatOpenAI({
+        ...base,
+        apiKey: process.env.OPENAI_API_KEY,
       });
     }
     return getDefaultModel();

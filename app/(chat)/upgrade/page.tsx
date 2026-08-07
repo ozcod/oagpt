@@ -81,7 +81,7 @@ export default function UpgradePage() {
             <ul className="space-y-2.5 text-xs text-[#ccc]">
               <li className="flex items-center gap-2">
                 <Check className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-                Gemini 2.5 Flash & 2.0 Flash Lite
+                Gemini 2.5 Flash
               </li>
               <li className="flex items-center gap-2">
                 <Check className="h-3.5 w-3.5 text-emerald-400 shrink-0" />

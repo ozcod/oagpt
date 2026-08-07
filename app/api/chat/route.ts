@@ -1,6 +1,11 @@
 import { HumanMessage, AIMessage, SystemMessage } from "@langchain/core/messages";
 import { getDynamicModel, ModelId } from "./model";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { auth } from "@/lib/auth";
+import { db } from "@/db";
+import { chatThread, chatMessage } from "@/db/schema";
+import { eq } from "drizzle-orm";
+import { v4 as uuidv4 } from "uuid";
 
 export async function POST(request: Request) {
   // Rate limit: Max 10 requests per minute per IP for cost-intensive AI Chat
@@ -12,7 +17,9 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { messages, model: modelId } = body;
+    const { messages, model: modelId, threadId } = body;
+
+    const session = await auth.api.getSession({ headers: request.headers });
 
     const selectedModel = getDynamicModel(
       (modelId as ModelId) || "gemini-2.5-flash"
@@ -38,9 +45,51 @@ export async function POST(request: Request) {
         ? response.content
         : JSON.stringify(response.content);
 
+    // Persist to DB if user is authenticated
+    let activeThreadId = threadId;
+    if (session?.user?.id) {
+      const userMessage = messages[messages.length - 1];
+      const title = userMessage?.content?.slice(0, 40) || "New Chat";
+
+      if (!activeThreadId) {
+        activeThreadId = uuidv4();
+        await db.insert(chatThread).values({
+          id: activeThreadId,
+          title,
+          userId: session.user.id,
+        });
+      } else {
+        await db
+          .update(chatThread)
+          .set({ updatedAt: new Date() })
+          .where(eq(chatThread.id, activeThreadId));
+      }
+
+      // Save user message if provided
+      if (userMessage) {
+        await db.insert(chatMessage).values({
+          id: uuidv4(),
+          threadId: activeThreadId,
+          role: "user",
+          content: userMessage.content,
+          model: modelId,
+        });
+      }
+
+      // Save assistant response
+      await db.insert(chatMessage).values({
+        id: uuidv4(),
+        threadId: activeThreadId,
+        role: "assistant",
+        content: responseText,
+        model: modelId,
+      });
+    }
+
     return Response.json({
       role: "assistant",
       content: responseText,
+      threadId: activeThreadId,
     });
   } catch (error: any) {
     console.error("Chat API error:", error);
@@ -50,3 +99,4 @@ export async function POST(request: Request) {
     );
   }
 }
+

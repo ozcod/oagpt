@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { auth } from "@/lib/auth";
+import { db } from "@/db";
+import { generatedImage } from "@/db/schema";
+import { v4 as uuidv4 } from "uuid";
 
 export async function POST(request: Request) {
   // Rate limit: Max 5 image generations per minute per IP to prevent API key usage exhaustion
@@ -16,8 +20,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
     }
 
+    const session = await auth.api.getSession({ headers: request.headers });
     const fullPrompt = style && style !== "None" ? `${prompt}, ${style} style` : prompt;
     const openRouterKey = process.env.OPENROUTER_API_KEY;
+
+    let finalImageUrl = "";
 
     // 1. Try OpenRouter FLUX model
     if (openRouterKey) {
@@ -45,16 +52,12 @@ export async function POST(request: Request) {
           const data = await response.json();
           const choice = data.choices?.[0]?.message;
           
-          // Check for images array in OpenRouter response
           if (choice?.images && Array.isArray(choice.images) && choice.images.length > 0) {
-            return NextResponse.json({ imageUrl: choice.images[0] });
-          }
-
-          // Check if message content has image markdown or direct URL
-          if (typeof choice?.content === "string") {
+            finalImageUrl = choice.images[0];
+          } else if (typeof choice?.content === "string") {
             const match = choice.content.match(/\((https?:\/\/[^\s\)]+)\)/) || choice.content.match(/(https?:\/\/[^\s]+)/);
             if (match && match[1]) {
-              return NextResponse.json({ imageUrl: match[1] });
+              finalImageUrl = match[1];
             }
           }
         }
@@ -63,27 +66,41 @@ export async function POST(request: Request) {
       }
     }
 
-    // 2. Guaranteed instant FLUX generation engine (Pollinations FLUX)
-    // Fetch image server-side and convert to Data URL so it ALWAYS displays instantly in browser without CORS/loading issues
-    const seed = Math.floor(Math.random() * 1000000);
-    const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(
-      fullPrompt
-    )}?model=flux&width=1024&height=1024&nologo=true&seed=${seed}`;
+    // 2. Guaranteed instant FLUX generation engine (Pollinations FLUX) if OpenRouter did not yield URL
+    if (!finalImageUrl) {
+      const seed = Math.floor(Math.random() * 1000000);
+      const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(
+        fullPrompt
+      )}?model=flux&width=1024&height=1024&nologo=true&seed=${seed}`;
 
-    try {
-      const imgRes = await fetch(pollinationsUrl, { cache: "no-store" });
-      if (imgRes.ok) {
-        const buffer = await imgRes.arrayBuffer();
-        const contentType = imgRes.headers.get("content-type") || "image/jpeg";
-        const base64 = Buffer.from(buffer).toString("base64");
-        const dataUrl = `data:${contentType};base64,${base64}`;
-        return NextResponse.json({ imageUrl: dataUrl });
+      try {
+        const imgRes = await fetch(pollinationsUrl, { cache: "no-store" });
+        if (imgRes.ok) {
+          const buffer = await imgRes.arrayBuffer();
+          const contentType = imgRes.headers.get("content-type") || "image/jpeg";
+          const base64 = Buffer.from(buffer).toString("base64");
+          finalImageUrl = `data:${contentType};base64,${base64}`;
+        } else {
+          finalImageUrl = pollinationsUrl;
+        }
+      } catch (fetchErr) {
+        console.error("Direct fetch to FLUX engine failed, using direct URL:", fetchErr);
+        finalImageUrl = pollinationsUrl;
       }
-    } catch (fetchErr) {
-      console.error("Direct fetch to FLUX engine failed, using direct URL:", fetchErr);
     }
 
-    return NextResponse.json({ imageUrl: pollinationsUrl });
+    // Persist to DB if user is authenticated
+    if (session?.user?.id && finalImageUrl) {
+      await db.insert(generatedImage).values({
+        id: uuidv4(),
+        userId: session.user.id,
+        prompt,
+        style,
+        imageUrl: finalImageUrl,
+      });
+    }
+
+    return NextResponse.json({ imageUrl: finalImageUrl });
   } catch (error: any) {
     console.error("Image generation API error:", error);
     return NextResponse.json(
