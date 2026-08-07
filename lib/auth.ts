@@ -34,6 +34,7 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: true,
+    sendVerificationOnSignUp: true,
     async sendVerificationEmail({ user, url }: { user: { name?: string; email: string }; url: string }) {
       const callbackUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.ai.ozairahmad.com";
       const verificationLink = `${url}${url.includes("?") ? "&" : "?"}callbackURL=${encodeURIComponent(callbackUrl)}`;
