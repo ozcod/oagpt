@@ -49,6 +49,7 @@ export default function SignupForm() {
     try {
       await authClient.signIn.social({
         provider: provider,
+        callbackURL: "/",
       });
     } catch (err) {
       toast.error(`Sign in with ${provider} failed!`);
