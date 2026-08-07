@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 
 const TITLE = "OAGPT";
 const DESCRIPTION = "AI Chatbot";
-const BASE_URL = "http://localhost:3000";
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),
