@@ -13,32 +13,25 @@ export async function sendEmail({
   const fromEmail =
     process.env.RESEND_FROM_EMAIL || "OAGPT Security <onboarding@resend.dev>";
 
-  if (!apiKey || apiKey.includes("your_resend_api_key")) {
-    console.log("--------------------------------------------------");
-    console.log("✉️ [RESEND_API_KEY NOT SET] Email verification link:");
-    console.log(`To: ${to}`);
-    console.log(`Subject: ${subject}`);
-    console.log("--------------------------------------------------");
+  if (!apiKey) {
+    console.error("❌ RESEND_API_KEY is not defined in environment variables.");
     return;
   }
 
   const resend = new Resend(apiKey);
 
-  try {
-    const { data, error } = await resend.emails.send({
-      from: fromEmail,
-      to,
-      subject,
-      html,
-    });
+  const { data, error } = await resend.emails.send({
+    from: fromEmail,
+    to,
+    subject,
+    html,
+  });
 
-    if (error) {
-      console.error("❌ Resend Email Error:", error);
-      throw new Error(error.message);
-    }
-
-    console.log(`✅ Verification email sent to ${to} (ID: ${data?.id})`);
-  } catch (err: any) {
-    console.error("Failed to send email via Resend:", err);
+  if (error) {
+    console.error("❌ Resend API Error:", error.message);
+    throw new Error(`Resend Error: ${error.message}`);
   }
+
+  console.log(`✅ Verification email sent to ${to} (ID: ${data?.id})`);
+  return data;
 }
