@@ -10,6 +10,7 @@ export const auth = betterAuth({
     const allowed = [
       process.env.BETTER_AUTH_URL,
       process.env.NEXT_PUBLIC_APP_URL,
+      "https://www.ai.ozairahmad.com",
       "https://ai.ozairahmad.com",
       "http://localhost:3000",
     ].filter(Boolean) as string[];
