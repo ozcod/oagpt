@@ -1,6 +1,14 @@
 import { NextResponse } from "next/server";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
+  // Rate limit: Max 5 image generations per minute per IP to prevent API key usage exhaustion
+  const rateLimitError = checkRateLimit(request, "generate-image-api", {
+    limit: 5,
+    windowSeconds: 60,
+  });
+  if (rateLimitError) return rateLimitError;
+
   try {
     const { prompt, style } = await request.json();
 
@@ -19,7 +27,7 @@ export async function POST(request: Request) {
           headers: {
             Authorization: `Bearer ${openRouterKey}`,
             "Content-Type": "application/json",
-            "HTTP-Referer": "http://localhost:3000",
+            "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
             "X-Title": "OAGPT Image Generator",
           },
           body: JSON.stringify({

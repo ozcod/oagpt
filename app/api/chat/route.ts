@@ -1,7 +1,15 @@
 import { HumanMessage, AIMessage, SystemMessage } from "@langchain/core/messages";
 import { getDynamicModel, ModelId } from "./model";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
+  // Rate limit: Max 10 requests per minute per IP for cost-intensive AI Chat
+  const rateLimitError = checkRateLimit(request, "chat-api", {
+    limit: 10,
+    windowSeconds: 60,
+  });
+  if (rateLimitError) return rateLimitError;
+
   try {
     const body = await request.json();
     const { messages, model: modelId } = body;
