@@ -5,6 +5,26 @@ import { schema } from "@/db/schema/auth-schema";
 
 export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL,
+  trustedOrigins: (request) => {
+    const origin = request?.headers?.get("origin") || request?.headers?.get("referer");
+    const allowed = [
+      process.env.BETTER_AUTH_URL,
+      process.env.NEXT_PUBLIC_APP_URL,
+      "https://ai.ozairahmad.com",
+      "http://localhost:3000",
+    ].filter(Boolean) as string[];
+
+    // Dynamically trust any Vercel preview domain (*.vercel.app)
+    if (origin) {
+      try {
+        const url = new URL(origin);
+        if (url.hostname.endsWith(".vercel.app") || allowed.includes(url.origin)) {
+          return [url.origin];
+        }
+      } catch (e) {}
+    }
+    return allowed;
+  },
   database: drizzleAdapter(db, {
     provider: "pg",
     schema: schema,

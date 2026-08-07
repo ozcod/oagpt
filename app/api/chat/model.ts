@@ -79,7 +79,7 @@ function createModel(modelId: ModelId, config: ModelConfig) {
   if (modelId === "deepseek-r1-free") {
     if (process.env.OPENROUTER_API_KEY) {
       return new ChatOpenAI({
-        model: "deepseek/deepseek-r1:free",
+        model: "deepseek/deepseek-r1",
         temperature: 0,
         apiKey: process.env.OPENROUTER_API_KEY,
         configuration: {
@@ -93,7 +93,7 @@ function createModel(modelId: ModelId, config: ModelConfig) {
   if (modelId === "llama-3-3-70b-free") {
     if (process.env.OPENROUTER_API_KEY) {
       return new ChatOpenAI({
-        model: "meta-llama/llama-3.3-70b-instruct:free",
+        model: "meta-llama/llama-3.3-70b-instruct",
         temperature: 0,
         apiKey: process.env.OPENROUTER_API_KEY,
         configuration: {

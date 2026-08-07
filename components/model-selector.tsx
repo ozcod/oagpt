@@ -27,6 +27,16 @@ const models = [
     chefSlug: "google",
     id: "gemini-2.5-flash",
     name: "Gemini 2.5 Flash",
+    tag: "Free",
+    providers: ["google"],
+    isProOnly: false,
+  },
+  {
+    chef: "Google",
+    chefSlug: "google",
+    id: "gemini-2.0-flash-lite",
+    name: "Gemini 2.0 Flash Lite",
+    tag: "Free",
     providers: ["google"],
     isProOnly: false,
   },
@@ -35,14 +45,43 @@ const models = [
     chefSlug: "google",
     id: "gemini-2.5-pro",
     name: "Gemini 2.5 Pro",
+    tag: "Pro",
     providers: ["google"],
+    isProOnly: true,
+  },
+  {
+    chef: "OpenAI",
+    chefSlug: "openai",
+    id: "gpt-4o-mini",
+    name: "GPT-4o Mini",
+    tag: "Free",
+    providers: ["openai"],
     isProOnly: false,
+  },
+  {
+    chef: "OpenAI",
+    chefSlug: "openai",
+    id: "gpt-4o",
+    name: "GPT-4o",
+    tag: "Pro",
+    providers: ["openai"],
+    isProOnly: true,
+  },
+  {
+    chef: "Anthropic",
+    chefSlug: "anthropic",
+    id: "claude-3-5-sonnet",
+    name: "Claude 3.5 Sonnet",
+    tag: "Pro",
+    providers: ["anthropic"],
+    isProOnly: true,
   },
   {
     chef: "DeepSeek",
     chefSlug: "deepseek",
     id: "deepseek-r1-free",
-    name: "DeepSeek R1 (Free)",
+    name: "DeepSeek R1",
+    tag: "Free",
     providers: ["openrouter"],
     isProOnly: false,
   },
@@ -50,32 +89,9 @@ const models = [
     chef: "Meta",
     chefSlug: "meta",
     id: "llama-3-3-70b-free",
-    name: "Llama 3.3 70B (Free)",
+    name: "Llama 3.3 70B",
+    tag: "Free",
     providers: ["openrouter"],
-    isProOnly: false,
-  },
-  {
-    chef: "Google",
-    chefSlug: "google",
-    id: "gemini-2.0-flash-lite",
-    name: "Gemini 2.0 Flash Lite",
-    providers: ["google"],
-    isProOnly: false,
-  },
-  {
-    chef: "OpenAI",
-    chefSlug: "openai",
-    id: "gpt-4o-mini",
-    name: "GPT-4o Mini",
-    providers: ["openai"],
-    isProOnly: false,
-  },
-  {
-    chef: "OpenAI",
-    chefSlug: "openai",
-    id: "gpt-3.5-turbo",
-    name: "GPT-3.5 Turbo",
-    providers: ["openai"],
     isProOnly: false,
   },
 ];
@@ -108,6 +124,16 @@ const ModelItem = memo(
       >
         <ModelSelectorLogo provider={model.chefSlug} />
         <ModelSelectorName>{model.name}</ModelSelectorName>
+        <span
+          className={cn(
+            "text-[10px] font-semibold px-1.5 py-0.5 rounded border uppercase tracking-wider",
+            model.tag === "Pro"
+              ? "bg-amber-500/10 text-amber-400 border-amber-500/30"
+              : "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+          )}
+        >
+          {model.tag}
+        </span>
         <ModelSelectorLogoGroup className={cn(isLocked && "opacity-50")}>
           {model.providers.map((provider) => (
             <ModelSelectorLogo key={provider} provider={provider} />
