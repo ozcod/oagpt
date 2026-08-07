@@ -5,6 +5,11 @@ import { schema } from "@/db/schema/auth-schema";
 
 export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL,
+  trustedOrigins: [
+    process.env.BETTER_AUTH_URL || "https://ai.ozairahmad.com",
+    process.env.NEXT_PUBLIC_APP_URL || "https://ai.ozairahmad.com",
+    "http://localhost:3000",
+  ],
   database: drizzleAdapter(db, {
     provider: "pg",
     schema: schema,
