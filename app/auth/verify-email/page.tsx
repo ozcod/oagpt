@@ -1,30 +1,42 @@
 "use client";
 
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
-import { Mail, CheckCircle2, RotateCw } from "lucide-react";
+import { Mail, RotateCw, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import Link from "next/link";
 
 export default function VerifyEmailPage() {
+  const searchParams = useSearchParams();
   const { data: session } = authClient.useSession();
   const [isResending, setIsResending] = useState(false);
 
-  const userEmail = session?.user?.email;
+  const queryEmail = searchParams.get("email") || "";
+  const sessionEmail = session?.user?.email || "";
 
-  const handleResend = async () => {
-    if (!userEmail) {
-      toast.error("No user session found. Please sign in again.");
+  const [inputEmail, setInputEmail] = useState(queryEmail || sessionEmail);
+
+  const displayEmail = sessionEmail || inputEmail || queryEmail;
+
+  const handleResend = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const targetEmail = inputEmail || sessionEmail || queryEmail;
+
+    if (!targetEmail) {
+      toast.error("Please enter your email address to resend.");
       return;
     }
+
     setIsResending(true);
     try {
       await authClient.sendVerificationEmail({
-        email: userEmail,
+        email: targetEmail,
         callbackURL: "/",
       });
-      toast.success("Verification email resent! Please check your inbox.");
+      toast.success("Verification email sent! Please check your inbox.");
     } catch (err: any) {
       toast.error(err?.message || "Failed to resend verification email");
     } finally {
@@ -39,39 +51,53 @@ export default function VerifyEmailPage() {
           <Mail className="w-7 h-7" />
         </div>
 
-        <h1 className="text-2xl font-bold text-white mb-2">Verify your email</h1>
+        <h1 className="text-2xl font-bold text-white mb-2">Check your inbox</h1>
         
         <p className="text-xs md:text-sm text-[#a1a1a1] mb-6 leading-relaxed">
           We sent a verification link to{" "}
-          <span className="text-white font-medium">{userEmail || "your email address"}</span>.
-          Please click the link in the email to activate your account and start using OAGPT.
+          <span className="text-white font-medium">{displayEmail || "your email address"}</span>.
+          Please click the link in the email to verify your account and start using OAGPT.
         </p>
 
-        <div className="flex flex-col gap-3">
+        <form onSubmit={handleResend} className="flex flex-col gap-3">
+          {!sessionEmail && (
+            <Input
+              type="email"
+              placeholder="Enter your email address"
+              value={inputEmail}
+              onChange={(e) => setInputEmail(e.target.value)}
+              className="bg-[#2a2a2a] border-[#383838] text-white text-xs h-10 rounded-xl"
+            />
+          )}
+
           <Button
-            onClick={handleResend}
+            type="submit"
             disabled={isResending}
             className="w-full bg-white hover:bg-[#e0e0e0] text-black font-medium h-10 text-xs rounded-xl"
           >
             {isResending ? (
               <span className="flex items-center gap-2">
-                <RotateCw className="w-3.5 h-3.5 animate-spin" /> Resending...
+                <RotateCw className="w-3.5 h-3.5 animate-spin" /> Resending email...
               </span>
             ) : (
-              "Resend Verification Email"
+              <span className="flex items-center justify-center gap-2">
+                <Send className="w-3.5 h-3.5" /> Resend Verification Email
+              </span>
             )}
           </Button>
 
           <Link href="/auth/signin">
             <Button
+              type="button"
               variant="outline"
               className="w-full border-[#383838] bg-[#2a2a2a] text-[#aaa] hover:text-white hover:bg-[#333] h-10 text-xs rounded-xl"
             >
               Back to Sign In
             </Button>
           </Link>
-        </div>
+        </form>
       </div>
     </div>
   );
 }
+
