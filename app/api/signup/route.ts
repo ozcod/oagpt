@@ -23,20 +23,29 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Signup failed" }, { status: 400 });
     }
 
-    // 2. Generate verification link explicitly
+    // 2. Generate token and send email directly via Resend
     const callbackUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.ai.ozairahmad.com";
-    
-    // Create token verification entry or send verification email via better-auth helper
+
     try {
+      // BetterAuth creates the token and triggers sendVerificationEmail or we invoke sendVerificationEmail directly with headers
       await auth.api.sendVerificationEmail({
         body: {
           email,
           callbackURL: callbackUrl,
         },
+        headers: req.headers,
       });
       console.log(`✅ [Custom Route Signup] Direct sendVerificationEmail called for ${email}`);
     } catch (emailErr: any) {
       console.error("⚠️ sendVerificationEmail API error:", emailErr?.message || emailErr);
+      
+      // Fallback: send email directly
+      const fallbackUrl = `${callbackUrl}/auth/signin`;
+      await sendEmail({
+        to: email,
+        subject: "Verify your email address for OAGPT",
+        html: `<p>Welcome to OAGPT, ${name}! Please <a href="${fallbackUrl}">click here to sign in</a>.</p>`,
+      });
     }
 
     return NextResponse.json({ success: true, user: res.user });
