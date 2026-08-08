@@ -73,16 +73,8 @@ export default function SignupForm() {
           onRequest: (ctx) => {
             setIsLoading(true);
           },
-          onSuccess: async (ctx) => {
+          onSuccess: (ctx) => {
             setIsLoading(false);
-            try {
-              await authClient.sendVerificationEmail({
-                email: value.email,
-                callbackURL: "/",
-              });
-            } catch (e) {
-              console.error("Auto send verification failed:", e);
-            }
             toast.success(
               "Account created! Please check your email to verify your address.",
             );
