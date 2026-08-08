@@ -62,31 +62,26 @@ export default function SignupForm() {
       onChange: signupSchema,
     },
     onSubmit: async ({ value }) => {
-      setIsLoading(true);
-      try {
-        const res = await fetch("/api/signup", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: value.username,
-            email: value.email,
-            password: value.password,
-          }),
-        });
-
-        const data = await res.json();
-
-        if (!res.ok) {
-          throw new Error(data.error || "Signup failed");
+      await authClient.signUp.email(
+        {
+          name: value.username,
+          email: value.email,
+          password: value.password,
+          callbackURL: "/",
+        },
+        {
+          onRequest: () => setIsLoading(true),
+          onSuccess: () => {
+            setIsLoading(false);
+            toast.success("Account created! Please check your email to verify your address.");
+            router.push(`/auth/verify-email?email=${encodeURIComponent(value.email)}`);
+          },
+          onError: (ctx) => {
+            setIsLoading(false);
+            toast.error(ctx.error.message || "Signup failed!");
+          },
         }
-
-        toast.success("Account created! Please check your email to verify your address.");
-        router.push(`/auth/verify-email?email=${encodeURIComponent(value.email)}`);
-      } catch (err: any) {
-        toast.error(err.message || "Signup failed");
-      } finally {
-        setIsLoading(false);
-      }
+      );
     },
   });
 
