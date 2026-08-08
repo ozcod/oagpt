@@ -40,6 +40,8 @@ export const auth = betterAuth({
       const callbackUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.ai.ozairahmad.com";
       const verificationLink = `${url}${url.includes("?") ? "&" : "?"}callbackURL=${encodeURIComponent(callbackUrl)}`;
 
+      console.log(`📧 [BetterAuth Trigger] Sending verification email to ${user.email} with link ${verificationLink}`);
+
       try {
         await sendEmail({
           to: user.email,
