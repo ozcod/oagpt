@@ -23,16 +23,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Signup failed" }, { status: 400 });
     }
 
-    // 2. Generate token and send verification email with full HTML template directly
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.ai.ozairahmad.com";
-    const signinCallback = `${baseUrl}/auth/signin?verified=true`;
+    // 2. Send verification email explicitly using sendEmail
+    const callbackUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.ai.ozairahmad.com";
 
     try {
-      // BetterAuth generates the verification token entry
       await auth.api.sendVerificationEmail({
         body: {
           email,
-          callbackURL: signinCallback,
+          callbackURL: callbackUrl,
         },
         headers: req.headers,
       });
