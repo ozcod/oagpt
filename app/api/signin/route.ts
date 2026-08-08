@@ -16,12 +16,10 @@ export async function POST(req: Request) {
 
     // If identifier doesn't look like an email, lookup email by username (user.name) in database
     if (!targetEmail.includes("@")) {
-      const foundUser = await db.query.user.findFirst({
-        where: eq(user.name, targetEmail),
-      });
+      const foundUsers = await db.select().from(user).where(eq(user.name, targetEmail)).limit(1);
 
-      if (foundUser) {
-        targetEmail = foundUser.email;
+      if (foundUsers.length > 0) {
+        targetEmail = foundUsers[0].email;
       }
     }
 
