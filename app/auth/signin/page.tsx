@@ -59,27 +59,46 @@ export default function LoginForm() {
     onSubmit: async ({ value }) => {
       setIsLoading(true);
       try {
-        const res = await fetch("/api/signin", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            identifier: value.email,
-            password: value.password,
-          }),
-        });
+        let emailToUse = value.email.trim();
 
-        const data = await res.json();
-
-        if (!res.ok) {
-          throw new Error(data.error || "Invalid email or password");
+        // If username was entered, fetch associated email first
+        if (!emailToUse.includes("@")) {
+          const checkRes = await fetch("/api/signin", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ identifier: emailToUse, password: value.password }),
+          });
+          const checkData = await checkRes.json();
+          if (!checkRes.ok) {
+            throw new Error(checkData.error || "Invalid email/username or password");
+          }
+          if (checkData.user?.email) {
+            emailToUse = checkData.user.email;
+          }
         }
 
-        toast.success("Signing in...");
-        router.push("/");
+        await authClient.signIn.email(
+          {
+            email: emailToUse,
+            password: value.password,
+            callbackURL: "/",
+          },
+          {
+            onRequest: () => setIsLoading(true),
+            onSuccess: () => {
+              setIsLoading(false);
+              toast.success("Signing in...");
+              router.push("/");
+            },
+            onError: (ctx) => {
+              setIsLoading(false);
+              toast.error(ctx.error.message || "Invalid email or password");
+            },
+          }
+        );
       } catch (err: any) {
-        toast.error(err.message || "Invalid email or password");
-      } finally {
         setIsLoading(false);
+        toast.error(err.message || "Invalid email or password");
       }
     },
   });
