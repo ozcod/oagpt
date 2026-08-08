@@ -11,7 +11,7 @@ export async function sendEmail({
 }) {
   const apiKey = process.env.RESEND_API_KEY;
   const fromEmail =
-    process.env.RESEND_FROM_EMAIL || "OAGPT Security <onboarding@resend.dev>";
+    process.env.RESEND_FROM_EMAIL || "OAGPT Security <noreply@ozairahmad.com>";
 
   if (!apiKey) {
     console.error("❌ RESEND_API_KEY is not defined in environment variables.");
