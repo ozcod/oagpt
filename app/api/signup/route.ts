@@ -23,7 +23,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Signup failed" }, { status: 400 });
     }
 
-    // 2. Send verification email explicitly using sendEmail
+    // 2. Generate token and send email directly via Resend
     const callbackUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.ai.ozairahmad.com";
 
     try {
@@ -36,7 +36,7 @@ export async function POST(req: Request) {
       });
       console.log(`✅ [Custom Route Signup] Direct sendVerificationEmail called for ${email}`);
     } catch (emailErr: any) {
-      console.error("⚠️ [Custom Route Signup] Verification email error:", emailErr?.message || emailErr);
+      console.warn("⚠️ [Custom Route Signup] Verification email notice:", emailErr?.message || emailErr);
     }
 
     return NextResponse.json({ success: true, user: res.user });
