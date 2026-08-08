@@ -62,31 +62,31 @@ export default function SignupForm() {
       onChange: signupSchema,
     },
     onSubmit: async ({ value }) => {
-      await authClient.signUp.email(
-        {
-          name: value.username,
-          email: value.email, // user email address
-          password: value.password, // user password -> min 8 characters by default
-          callbackURL: "/", // A URL to redirect to after the user verifies their email (optional)
-        },
-        {
-          onRequest: (ctx) => {
-            setIsLoading(true);
-          },
-          onSuccess: (ctx) => {
-            setIsLoading(false);
-            toast.success(
-              "Account created! Please check your email to verify your address.",
-            );
-            router.push(`/auth/verify-email?email=${encodeURIComponent(value.email)}`);
-          },
-          onError: (ctx) => {
-            setIsLoading(false);
-            toast.error("Signup failed!");
-            alert(ctx.error.message);
-          },
-        },
-      );
+      setIsLoading(true);
+      try {
+        const res = await fetch("/api/signup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: value.username,
+            email: value.email,
+            password: value.password,
+          }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || "Signup failed");
+        }
+
+        toast.success("Account created! Please check your email to verify your address.");
+        router.push(`/auth/verify-email?email=${encodeURIComponent(value.email)}`);
+      } catch (err: any) {
+        toast.error(err.message || "Signup failed");
+      } finally {
+        setIsLoading(false);
+      }
     },
   });
 
