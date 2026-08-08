@@ -1,16 +1,26 @@
-import { auth } from "@/lib/auth"; // path to your auth file
-import { toNextJsHandler } from "better-auth/next-js";
+import { NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
 
+// Wrap better-auth handlers and log server errors clearly
 const authHandlers = toNextJsHandler(auth);
+
+import { toNextJsHandler } from "better-auth/next-js";
 
 export async function POST(req: Request) {
   const rateLimitError = checkRateLimit(req, "auth-api-post", {
-    limit: 20,
+    limit: 30,
     windowSeconds: 60,
   });
   if (rateLimitError) return rateLimitError;
-  return authHandlers.POST(req);
+
+  try {
+    const res = await authHandlers.POST(req);
+    return res;
+  } catch (err: any) {
+    console.error("❌ AUTH API POST ERROR:", err);
+    return NextResponse.json({ error: err?.message || "Auth POST Error" }, { status: 400 });
+  }
 }
 
 export async function GET(req: Request) {
@@ -19,6 +29,11 @@ export async function GET(req: Request) {
     windowSeconds: 60,
   });
   if (rateLimitError) return rateLimitError;
-  return authHandlers.GET(req);
-}
 
+  try {
+    return await authHandlers.GET(req);
+  } catch (err: any) {
+    console.error("❌ AUTH API GET ERROR:", err);
+    return NextResponse.json({ error: err?.message || "Auth GET Error" }, { status: 400 });
+  }
+}
