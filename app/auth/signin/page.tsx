@@ -23,8 +23,8 @@ import { FieldError, FieldGroup } from "@/components/ui/field";
 import { GithubIcon, GoogleIcon } from "../icons";
 
 const formSchema = z.object({
-  email: z.string().min(2, "Enter your email or username"),
-  password: z.string().min(1, "Password is required"),
+  email: z.email("Invalid email address"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
 });
 
 type SocialProvider = "google" | "github";
@@ -57,30 +57,28 @@ export default function LoginForm() {
       onChange: formSchema,
     },
     onSubmit: async ({ value }) => {
-      setIsLoading(true);
-      try {
-        const res = await fetch("/api/signin", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            identifier: value.email,
-            password: value.password,
-          }),
-        });
-
-        const data = await res.json();
-
-        if (!res.ok) {
-          throw new Error(data.error || "Invalid email or password");
-        }
-
-        toast.success("Signing in...");
-        router.push("/");
-      } catch (err: any) {
-        toast.error(err.message || "Invalid email or password");
-      } finally {
-        setIsLoading(false);
-      }
+      await authClient.signIn.email(
+        {
+          email: value.email, // user email address
+          password: value.password, // user password -> min 8 characters by default
+          callbackURL: "/", // A URL to redirect to after the user verifies their email (optional)
+        },
+        {
+          onRequest: (ctx) => {
+            setIsLoading(true);
+          },
+          onSuccess: (ctx) => {
+            setIsLoading(false);
+            toast.success("Signing in...");
+            router.push("/");
+          },
+          onError: (ctx) => {
+            setIsLoading(false);
+            toast.error("SignIn failed!");
+            alert(ctx.error.message);
+          },
+        },
+      );
     },
   });
 
@@ -174,8 +172,8 @@ export default function LoginForm() {
                         value={field.state.value}
                         onBlur={field.handleBlur}
                         onChange={(e) => field.handleChange(e.target.value)}
-                        type="text"
-                        placeholder="Email address or username"
+                        type="email"
+                        placeholder="Email address"
                         className={cn(
                           "h-13 rounded-xl border-[#424242] bg-transparent px-4 text-base transition-colors placeholder:text-[#676767] focus:ring-0",
                           hasError
