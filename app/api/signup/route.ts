@@ -26,18 +26,14 @@ export async function POST(req: Request) {
     // 2. Generate token and send email directly via Resend
     const callbackUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.ai.ozairahmad.com";
 
-    try {
-      await auth.api.sendVerificationEmail({
-        body: {
-          email,
-          callbackURL: callbackUrl,
-        },
-        headers: req.headers,
-      });
-      console.log(`✅ [Custom Route Signup] Direct sendVerificationEmail called for ${email}`);
-    } catch (emailErr: any) {
-      console.warn("⚠️ [Custom Route Signup] Verification email notice:", emailErr?.message || emailErr);
-    }
+    await auth.api.sendVerificationEmail({
+      body: {
+        email,
+        callbackURL: callbackUrl,
+      },
+      headers: req.headers,
+    });
+    console.log(`✅ [Custom Route Signup] Direct sendVerificationEmail called for ${email}`);
 
     return NextResponse.json({ success: true, user: res.user });
   } catch (err: any) {

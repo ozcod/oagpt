@@ -34,7 +34,10 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: true,
-    sendVerificationOnSignUp: true,
+  },
+  emailVerification: {
+    sendOnSignUp: true,
+    autoSignInAfterVerification: true,
     async sendVerificationEmail({ user, url }: { user: { name?: string; email: string }; url: string }) {
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.ai.ozairahmad.com";
       const signinCallback = `${baseUrl}/auth/signin?verified=true`;
