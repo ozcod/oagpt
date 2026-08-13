@@ -4,7 +4,7 @@ import * as z from "zod";
 import Link from "next/link";
 import Image from "next/image";
 import { Loader2 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { cn } from "@/lib/utils";
 
@@ -23,22 +23,45 @@ import { FieldError, FieldGroup } from "@/components/ui/field";
 import { GithubIcon, GoogleIcon } from "../icons";
 
 const formSchema = z.object({
-  email: z.email("Invalid email address"),
+  email: z
+    .string()
+    .trim()
+    .min(1, "Email address is required")
+    .email("Invalid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
 });
 
 type SocialProvider = "google" | "github";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "@tanstack/react-form";
 import { toast } from "sonner";
 import { authClient } from "@/lib/auth-client";
 
 export default function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [pendingProvider, setPendingProvider] = useState<SocialProvider | null>(
     null,
   );
   const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  const { data: session } = authClient.useSession();
+
+  useEffect(() => {
+    if (session) {
+      if (session.user.emailVerified) {
+        router.push("/");
+      } else {
+        router.push(`/auth/verify-email?email=${encodeURIComponent(session.user.email)}`);
+      }
+    }
+  }, [session, router]);
+
+  useEffect(() => {
+    if (searchParams.get("verified") === "true") {
+      toast.success("Email verified successfully! Please sign in to continue.");
+    }
+  }, [searchParams]);
 
   const handleSocialSignIn = async (provider: SocialProvider) => {
     try {
@@ -51,34 +74,54 @@ export default function LoginForm() {
     }
   };
 
+  const queryEmail = searchParams.get("email") || "";
+
   const form = useForm({
-    defaultValues: { email: "", password: "" },
+    defaultValues: { email: queryEmail, password: "" },
     validators: {
       onChange: formSchema,
     },
     onSubmit: async ({ value }) => {
-      await authClient.signIn.email(
-        {
-          email: value.email, // user email address
-          password: value.password, // user password -> min 8 characters by default
-          callbackURL: "/", // A URL to redirect to after the user verifies their email (optional)
-        },
-        {
-          onRequest: (ctx) => {
-            setIsLoading(true);
+      const cleanEmail = value.email.trim().toLowerCase();
+      const cleanPassword = value.password;
+
+      setIsLoading(true);
+      try {
+        await authClient.signIn.email(
+          {
+            email: cleanEmail,
+            password: cleanPassword,
+            callbackURL: "/",
           },
-          onSuccess: (ctx) => {
-            setIsLoading(false);
-            toast.success("Signing in...");
-            router.push("/");
+          {
+            onRequest: () => {
+              setIsLoading(true);
+            },
+            onSuccess: () => {
+              setIsLoading(false);
+              toast.success("Signed in successfully!");
+              router.push("/");
+              router.refresh();
+            },
+            onError: (ctx) => {
+              setIsLoading(false);
+              const errMsg = ctx.error.message || "Sign in failed. Invalid email or password.";
+              if (
+                errMsg.toLowerCase().includes("verify") ||
+                errMsg.toLowerCase().includes("email not verified")
+              ) {
+                toast.error("Please verify your email before signing in.");
+                router.push(`/auth/verify-email?email=${encodeURIComponent(cleanEmail)}`);
+              } else {
+                toast.error(errMsg);
+              }
+            },
           },
-          onError: (ctx) => {
-            setIsLoading(false);
-            toast.error("SignIn failed!");
-            alert(ctx.error.message);
-          },
-        },
-      );
+        );
+      } catch (err: any) {
+        setIsLoading(false);
+        toast.error(err?.message || "An unexpected error occurred during sign in.");
+      }
     },
   });
 

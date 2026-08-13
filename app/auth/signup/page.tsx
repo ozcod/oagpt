@@ -3,7 +3,7 @@
 import * as z from "zod";
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import { useRouter } from "next/navigation";
 import { useForm } from "@tanstack/react-form";
@@ -30,9 +30,22 @@ import { FieldError, FieldGroup } from "@/components/ui/field";
 import { GithubIcon, GoogleIcon } from "../icons";
 
 const signupSchema = z.object({
-  username: z.string().min(3, "Username must be at least 3 characters"),
-  email: z.email("Invalid email address"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  username: z
+    .string()
+    .trim()
+    .min(3, "Username must be at least 3 characters")
+    .max(30, "Username cannot exceed 30 characters")
+    .regex(/^[a-zA-Z0-9_-]+$/, "Username can only contain letters, numbers, hyphens, or underscores"),
+  email: z
+    .string()
+    .trim()
+    .min(1, "Email address is required")
+    .email("Invalid email address"),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .max(100, "Password is too long")
+    .regex(/^(?=.*[A-Za-z])(?=.*\d)/, "Password must contain at least 1 letter and 1 number"),
 });
 
 type SocialProvider = "google" | "github";
@@ -44,6 +57,20 @@ export default function SignupForm() {
   );
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [usernameError, setUsernameError] = useState<string | null>(null);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+
+  const { data: session } = authClient.useSession();
+
+  useEffect(() => {
+    if (session) {
+      if (session.user.emailVerified) {
+        router.push("/");
+      } else {
+        router.push(`/auth/verify-email?email=${encodeURIComponent(session.user.email)}`);
+      }
+    }
+  }, [session, router]);
 
   const handleSocialSignIn = async (provider: SocialProvider) => {
     try {
@@ -62,26 +89,73 @@ export default function SignupForm() {
       onChange: signupSchema,
     },
     onSubmit: async ({ value }) => {
-      await authClient.signUp.email(
-        {
-          name: value.username,
-          email: value.email,
-          password: value.password,
-          callbackURL: "/",
-        },
-        {
-          onRequest: () => setIsLoading(true),
-          onSuccess: () => {
+      const cleanUsername = value.username.trim();
+      const cleanEmail = value.email.trim().toLowerCase();
+      const cleanPassword = value.password;
+
+      setIsLoading(true);
+      setUsernameError(null);
+      setSuggestions([]);
+
+      try {
+        // Pre-check availability for existing email or username
+        const checkRes = await fetch(
+          `/api/auth/check-availability?email=${encodeURIComponent(cleanEmail)}&username=${encodeURIComponent(cleanUsername)}`
+        );
+        if (checkRes.ok) {
+          const data = await checkRes.json();
+
+          if (data.emailExists) {
             setIsLoading(false);
-            toast.success("Account created! Please check your email to verify your address.");
-            router.push(`/auth/verify-email?email=${encodeURIComponent(value.email)}`);
-          },
-          onError: (ctx) => {
+            toast.info("An account with this email address already exists. Redirecting to Sign In...");
+            router.push(`/auth/signin?email=${encodeURIComponent(cleanEmail)}`);
+            return;
+          }
+
+          if (data.usernameExists) {
             setIsLoading(false);
-            toast.error(ctx.error.message || "Signup failed!");
-          },
+            setUsernameError(`Username "${cleanUsername}" is already taken.`);
+            setSuggestions(data.suggestions || []);
+            toast.error("Username is already taken. Please pick a suggested username.");
+            return;
+          }
         }
-      );
+
+        await authClient.signUp.email(
+          {
+            name: cleanUsername,
+            email: cleanEmail,
+            password: cleanPassword,
+            callbackURL: "/",
+          },
+          {
+            onRequest: () => setIsLoading(true),
+            onSuccess: () => {
+              setIsLoading(false);
+              toast.success("Account created! Please check your email to verify your account.");
+              router.push(`/auth/verify-email?email=${encodeURIComponent(cleanEmail)}`);
+            },
+            onError: (ctx) => {
+              setIsLoading(false);
+              const msg = ctx.error.message || "Signup failed. Please check your details.";
+              if (
+                msg.toLowerCase().includes("email") &&
+                (msg.toLowerCase().includes("exist") ||
+                  msg.toLowerCase().includes("in use") ||
+                  msg.toLowerCase().includes("registered"))
+              ) {
+                toast.info("An account with this email address already exists. Redirecting to Sign In...");
+                router.push(`/auth/signin?email=${encodeURIComponent(cleanEmail)}`);
+              } else {
+                toast.error(msg);
+              }
+            },
+          }
+        );
+      } catch (err: any) {
+        setIsLoading(false);
+        toast.error(err?.message || "An unexpected error occurred during signup.");
+      }
     },
   });
 
@@ -164,14 +238,17 @@ export default function SignupForm() {
                 name="username"
                 children={(field) => {
                   const hasError =
-                    field.state.meta.isTouched &&
-                    field.state.meta.errors.length > 0;
+                    (field.state.meta.isTouched && field.state.meta.errors.length > 0) ||
+                    !!usernameError;
                   return (
                     <div className="flex flex-col">
                       <Input
                         value={field.state.value}
                         onBlur={field.handleBlur}
-                        onChange={(e) => field.handleChange(e.target.value)}
+                        onChange={(e) => {
+                          field.handleChange(e.target.value);
+                          if (usernameError) setUsernameError(null);
+                        }}
                         placeholder="Username"
                         className={cn(
                           "h-13 rounded-xl border-[#424242] bg-transparent px-4 text-base transition-colors focus:ring-0",
@@ -181,13 +258,39 @@ export default function SignupForm() {
                         )}
                       />
                       <div className="min-h-5 px-1 py-0.5">
-                        {hasError && (
+                        {field.state.meta.isTouched && field.state.meta.errors.length > 0 ? (
                           <FieldError
                             className="text-xs text-red-500 animate-in fade-in slide-in-from-top-1 duration-200"
                             errors={field.state.meta.errors}
                           />
-                        )}
+                        ) : usernameError ? (
+                          <span className="text-xs text-red-500 animate-in fade-in slide-in-from-top-1 duration-200">
+                            {usernameError}
+                          </span>
+                        ) : null}
                       </div>
+
+                      {suggestions.length > 0 && (
+                        <div className="mb-2 flex flex-col gap-1.5 rounded-xl border border-[#333] bg-[#1a1a1a] p-3 text-xs">
+                          <span className="font-medium text-[#a1a1a1]">Suggested usernames:</span>
+                          <div className="flex flex-wrap gap-2">
+                            {suggestions.map((sug) => (
+                              <button
+                                key={sug}
+                                type="button"
+                                onClick={() => {
+                                  field.handleChange(sug);
+                                  setUsernameError(null);
+                                  setSuggestions([]);
+                                }}
+                                className="rounded-lg border border-[#424242] bg-[#262626] px-2.5 py-1 text-xs font-medium text-white transition-colors hover:border-blue-500 hover:bg-blue-600/20 hover:text-blue-400"
+                              >
+                                {sug}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 }}

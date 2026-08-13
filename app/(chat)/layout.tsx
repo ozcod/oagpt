@@ -36,7 +36,8 @@ export default async function ChatPageLayout({
   if (!session) {
     redirect("/auth/signin");
   }
-  if (!session.user.emailVerified) {
+  const requireEmailVerification = process.env.REQUIRE_EMAIL_VERIFICATION === "true";
+  if (requireEmailVerification && !session.user.emailVerified) {
     redirect("/auth/verify-email");
   }
 

@@ -29,10 +29,8 @@ export async function sendEmail({
   });
 
   if (error) {
-    console.error("❌ Resend API Error:", error.message);
     throw new Error(`Resend Error: ${error.message}`);
   }
 
-  console.log(`✅ Verification email sent to ${to} (ID: ${data?.id})`);
   return data;
 }
