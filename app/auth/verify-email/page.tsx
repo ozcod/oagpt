@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { Mail, RotateCw, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,9 +10,16 @@ import { toast } from "sonner";
 import Link from "next/link";
 
 export default function VerifyEmailPage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session } = authClient.useSession();
   const [isResending, setIsResending] = useState(false);
+
+  useEffect(() => {
+    if (session?.user?.emailVerified) {
+      router.push("/");
+    }
+  }, [session, router]);
 
   const queryEmail = searchParams.get("email") || "";
   const sessionEmail = session?.user?.email || "";

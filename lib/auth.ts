@@ -16,11 +16,16 @@ export const auth = betterAuth({
       "http://localhost:3000",
     ].filter(Boolean) as string[];
 
-    // Dynamically trust any Vercel preview domain (*.vercel.app)
+    // Dynamically trust any Vercel preview domain (*.vercel.app) or localhost
     if (origin) {
       try {
         const url = new URL(origin);
-        if (url.hostname.endsWith(".vercel.app") || allowed.includes(url.origin)) {
+        if (
+          url.hostname.endsWith(".vercel.app") ||
+          url.hostname === "localhost" ||
+          url.hostname === "127.0.0.1" ||
+          allowed.includes(url.origin)
+        ) {
           return [url.origin];
         }
       } catch (e) {}
@@ -33,15 +38,24 @@ export const auth = betterAuth({
   }),
   emailAndPassword: {
     enabled: true,
-    requireEmailVerification: true,
-    sendVerificationOnSignUp: true,
+    requireEmailVerification: process.env.REQUIRE_EMAIL_VERIFICATION !== "false",
     autoSignIn: false,
+  },
+  emailVerification: {
+    sendOnSignUp: process.env.REQUIRE_EMAIL_VERIFICATION !== "false",
+    autoSignInAfterVerification: true,
     async sendVerificationEmail({ user, url }: { user: { name?: string; email: string }; url: string }) {
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.ai.ozairahmad.com";
-      const signinCallback = `${baseUrl}/auth/signin?verified=true`;
-      const verificationLink = `${url}${url.includes("?") ? "&" : "?"}callbackURL=${encodeURIComponent(signinCallback)}`;
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+      const signinCallback = `${baseUrl}/`;
 
-      console.log(`📧 [BetterAuth Trigger] Sending verification email to ${user.email} with link ${verificationLink}`);
+      let verificationLink = url;
+      try {
+        const parsedUrl = new URL(url, baseUrl);
+        parsedUrl.searchParams.set("callbackURL", signinCallback);
+        verificationLink = parsedUrl.toString();
+      } catch (e) {
+        // Fallback to original url
+      }
 
       try {
         await sendEmail({
@@ -107,8 +121,8 @@ export const auth = betterAuth({
             </html>
           `,
         });
-      } catch (err) {
-        console.error("Failed to dispatch verification email:", err);
+      } catch (err: any) {
+        // Silently handle send email error or rethrow
       }
     },
   },

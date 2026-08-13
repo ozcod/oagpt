@@ -18,7 +18,6 @@ export async function POST(req: Request) {
     const res = await authHandlers.POST(req);
     return res;
   } catch (err: any) {
-    console.error("❌ AUTH API POST ERROR:", err);
     return NextResponse.json({ error: err?.message || "Auth POST Error" }, { status: 400 });
   }
 }
@@ -33,7 +32,18 @@ export async function GET(req: Request) {
   try {
     return await authHandlers.GET(req);
   } catch (err: any) {
-    console.error("❌ AUTH API GET ERROR:", err);
     return NextResponse.json({ error: err?.message || "Auth GET Error" }, { status: 400 });
   }
 }
+
+export async function OPTIONS(req: Request) {
+  try {
+    if (typeof (authHandlers as any).OPTIONS === "function") {
+      return await (authHandlers as any).OPTIONS(req);
+    }
+    return await auth.handler(req);
+  } catch (err: any) {
+    return new Response(null, { status: 204 });
+  }
+}
+
