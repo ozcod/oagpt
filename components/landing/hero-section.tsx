@@ -474,19 +474,22 @@ export function HeroSection() {
 
             {/* Minimal Inline Limit Banner */}
             {remainingCredits <= 0 && !isLoading && (
-              <div className="mb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 rounded-xl border border-white/[0.08] bg-white/[0.02] px-3.5 py-2.5 text-xs text-zinc-400">
-                <span>Free preview limit reached.</span>
+              <div className="mb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/[0.08] px-3.5 py-2.5 text-xs text-amber-200 shadow-sm shadow-amber-950/20">
+                <span className="flex items-center gap-2 font-medium text-amber-300">
+                  <Sparkles className="h-3.5 w-3.5 text-amber-400 shrink-0" />
+                  <span>Free preview limit reached.</span>
+                </span>
                 <div className="flex items-center gap-3">
                   <Link
                     href="/auth/signup"
-                    className="text-white hover:text-zinc-200 font-medium transition-colors"
+                    className="font-medium text-amber-300 hover:text-amber-100 transition-colors underline-offset-2 hover:underline"
                   >
                     Sign up free →
                   </Link>
-                  <span className="text-zinc-600">•</span>
+                  <span className="text-amber-500/40">•</span>
                   <Link
                     href="/auth/signin"
-                    className="text-zinc-400 hover:text-white transition-colors"
+                    className="text-amber-200/70 hover:text-amber-100 transition-colors"
                   >
                     Sign in
                   </Link>
