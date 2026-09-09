@@ -330,13 +330,12 @@ export function HeroSection() {
                           ? `${m.name} is a Plus model. Free trial includes DeepSeek R1 and Gemini.`
                           : undefined
                       }
-                      className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs transition-all shrink-0 ${
-                        isPaid
+                      className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs transition-all shrink-0 ${isPaid
                           ? "opacity-35 cursor-not-allowed text-zinc-500 border border-transparent select-none"
                           : isActive
-                          ? "bg-white/10 text-white font-medium border border-white/20 cursor-pointer"
-                          : "text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04] border border-transparent cursor-pointer"
-                      }`}
+                            ? "bg-white/10 text-white font-medium border border-white/20 cursor-pointer"
+                            : "text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04] border border-transparent cursor-pointer"
+                        }`}
                     >
                       {isPaid && <Lock className="h-2.5 w-2.5 text-zinc-500 shrink-0" />}
                       <span>{m.name}</span>
@@ -356,14 +355,12 @@ export function HeroSection() {
                 >
                   <span className="flex items-center gap-1">
                     <span
-                      className={`h-1.5 w-1.5 rounded-full transition-colors ${
-                        remainingCredits >= 1 ? "bg-white/80" : "bg-white/20"
-                      }`}
+                      className={`h-1.5 w-1.5 rounded-full transition-colors ${remainingCredits >= 1 ? "bg-white/80" : "bg-white/20"
+                        }`}
                     />
                     <span
-                      className={`h-1.5 w-1.5 rounded-full transition-colors ${
-                        remainingCredits >= 2 ? "bg-white/80" : "bg-white/20"
-                      }`}
+                      className={`h-1.5 w-1.5 rounded-full transition-colors ${remainingCredits >= 2 ? "bg-white/80" : "bg-white/20"
+                        }`}
                     />
                   </span>
                   <span className="text-zinc-500">
@@ -397,9 +394,8 @@ export function HeroSection() {
                   return (
                     <div
                       key={idx}
-                      className={`flex flex-col gap-1.5 ${
-                        isUser ? "items-end" : "items-start"
-                      }`}
+                      className={`flex flex-col gap-1.5 ${isUser ? "items-end" : "items-start"
+                        }`}
                     >
                       {/* Message Meta */}
                       <div className="flex items-center gap-1.5 text-[10px] font-mono text-zinc-500 px-1">
@@ -412,11 +408,10 @@ export function HeroSection() {
 
                       {/* Message Content Bubble */}
                       <div
-                        className={`group relative max-w-[92%] sm:max-w-[85%] rounded-xl px-3.5 py-2.5 text-xs sm:text-sm leading-relaxed ${
-                          isUser
+                        className={`group relative max-w-[92%] sm:max-w-[85%] rounded-xl px-3.5 py-2.5 text-xs sm:text-sm leading-relaxed ${isUser
                             ? "bg-white/[0.08] text-white border border-white/10"
                             : "bg-[#141414] text-zinc-200 border border-white/[0.06]"
-                        }`}
+                          }`}
                       >
                         {isUser ? (
                           <div className="whitespace-pre-wrap font-sans">{m.content}</div>
