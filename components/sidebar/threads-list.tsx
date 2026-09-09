@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useMemo, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { MessageSquare, Trash2 } from "lucide-react";
@@ -15,12 +15,10 @@ import { cn } from "@/lib/utils";
 import {
   ChatThread,
   deleteStoredThread,
-  getStoredThreads,
 } from "@/lib/chat-storage";
 import { authClient } from "@/lib/auth-client";
 
 export function ThreadsLists() {
-  const [threads, setThreads] = useState<ChatThread[]>([]);
   const params = useParams();
   const router = useRouter();
   const currentThreadId = params?.thread_id as string | undefined;
@@ -28,20 +26,32 @@ export function ThreadsLists() {
   const { data: session } = authClient.useSession();
   const userId = session?.user?.id || session?.user?.email;
 
-  const loadThreads = useCallback(() => {
-    if (userId) {
-      setThreads(getStoredThreads(userId));
-    } else {
-      setThreads([]);
-    }
+  const subscribe = useCallback((onStoreChange: () => void) => {
+    window.addEventListener("chat_threads_updated", onStoreChange);
+    window.addEventListener("storage", onStoreChange);
+    return () => {
+      window.removeEventListener("chat_threads_updated", onStoreChange);
+      window.removeEventListener("storage", onStoreChange);
+    };
+  }, []);
+
+  const getSnapshot = useCallback(() => {
+    if (typeof window === "undefined" || !userId) return "[]";
+    const key = `oagpt_chat_threads_${userId}`;
+    return localStorage.getItem(key) || "[]";
   }, [userId]);
 
-  useEffect(() => {
-    loadThreads();
-    const handleUpdate = () => loadThreads();
-    window.addEventListener("chat_threads_updated", handleUpdate);
-    return () => window.removeEventListener("chat_threads_updated", handleUpdate);
-  }, [loadThreads]);
+  const getServerSnapshot = useCallback(() => "[]", []);
+
+  const rawThreads = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+
+  const threads: ChatThread[] = useMemo(() => {
+    try {
+      return JSON.parse(rawThreads) as ChatThread[];
+    } catch {
+      return [];
+    }
+  }, [rawThreads]);
 
   const handleDelete = (e: React.MouseEvent, id: string) => {
     e.preventDefault();
@@ -49,7 +59,7 @@ export function ThreadsLists() {
     if (userId) {
       deleteStoredThread(id, userId);
       if (currentThreadId === id) {
-        router.push("/");
+        router.push("/chat");
       }
     }
   };

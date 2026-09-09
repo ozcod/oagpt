@@ -16,8 +16,12 @@ export async function POST(request: Request) {
   try {
     const { prompt, style } = await request.json();
 
-    if (!prompt || typeof prompt !== "string") {
+    if (!prompt || typeof prompt !== "string" || prompt.trim().length === 0) {
       return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
+    }
+
+    if (prompt.length > 2000) {
+      return NextResponse.json({ error: "Prompt exceeds maximum allowed length of 2000 characters" }, { status: 400 });
     }
 
     const session = await auth.api.getSession({ headers: request.headers });
@@ -101,10 +105,11 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ imageUrl: finalImageUrl });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Image generation API error:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to generate image";
     return NextResponse.json(
-      { error: error?.message || "Failed to generate image" },
+      { error: errorMessage },
       { status: 500 }
     );
   }

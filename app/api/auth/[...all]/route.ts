@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
+import { toNextJsHandler } from "better-auth/next-js";
 import { auth } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
 
 // Wrap better-auth handlers and log server errors clearly
 const authHandlers = toNextJsHandler(auth);
-
-import { toNextJsHandler } from "better-auth/next-js";
 
 export async function POST(req: Request) {
   const rateLimitError = checkRateLimit(req, "auth-api-post", {
@@ -17,8 +16,9 @@ export async function POST(req: Request) {
   try {
     const res = await authHandlers.POST(req);
     return res;
-  } catch (err: any) {
-    return NextResponse.json({ error: err?.message || "Auth POST Error" }, { status: 400 });
+  } catch (err: unknown) {
+    const errorMessage = err instanceof Error ? err.message : "Auth POST Error";
+    return NextResponse.json({ error: errorMessage }, { status: 400 });
   }
 }
 
@@ -31,18 +31,20 @@ export async function GET(req: Request) {
 
   try {
     return await authHandlers.GET(req);
-  } catch (err: any) {
-    return NextResponse.json({ error: err?.message || "Auth GET Error" }, { status: 400 });
+  } catch (err: unknown) {
+    const errorMessage = err instanceof Error ? err.message : "Auth GET Error";
+    return NextResponse.json({ error: errorMessage }, { status: 400 });
   }
 }
 
 export async function OPTIONS(req: Request) {
   try {
-    if (typeof (authHandlers as any).OPTIONS === "function") {
-      return await (authHandlers as any).OPTIONS(req);
+    const handlers = authHandlers as Record<string, unknown>;
+    if (typeof handlers.OPTIONS === "function") {
+      return await (handlers.OPTIONS as (req: Request) => Promise<Response>)(req);
     }
     return await auth.handler(req);
-  } catch (err: any) {
+  } catch {
     return new Response(null, { status: 204 });
   }
 }

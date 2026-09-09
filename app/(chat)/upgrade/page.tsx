@@ -68,7 +68,7 @@ export default function UpgradePage() {
               </span>
             </div>
             <div className="flex items-baseline gap-1 mb-3">
-              <span className="text-3xl font-bold text-white">$0</span>
+              <span className="text-3xl font-bold text-white">€0</span>
               <span className="text-xs text-[#888]">/ month</span>
             </div>
             <p className="text-xs text-[#9e9e9e] mb-6">
@@ -124,7 +124,7 @@ export default function UpgradePage() {
             </div>
             <div className="flex items-baseline gap-1 mb-3">
               <span className="text-3xl font-bold text-white">
-                {selectedBilling === "monthly" ? "$20" : "$16"}
+                {selectedBilling === "monthly" ? "€20" : "€16"}
               </span>
               <span className="text-xs text-[#888]">/ month</span>
             </div>

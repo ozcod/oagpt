@@ -9,7 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ChatThread, getStoredThreads } from "@/lib/chat-storage";
+import { getStoredThreads } from "@/lib/chat-storage";
 import { authClient } from "@/lib/auth-client";
 
 interface SearchModalProps {

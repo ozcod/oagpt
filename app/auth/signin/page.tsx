@@ -3,23 +3,17 @@
 import * as z from "zod";
 import Link from "next/link";
 import Image from "next/image";
-import { Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useForm } from "@tanstack/react-form";
+import { toast } from "sonner";
+import { Loader2, ArrowRight } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-
+import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { FieldError, FieldGroup } from "@/components/ui/field";
-
 import { GithubIcon, GoogleIcon } from "../icons";
 
 const formSchema = z.object({
@@ -32,17 +26,11 @@ const formSchema = z.object({
 });
 
 type SocialProvider = "google" | "github";
-import { useState, useEffect } from "react";
-import { useForm } from "@tanstack/react-form";
-import { toast } from "sonner";
-import { authClient } from "@/lib/auth-client";
 
 export default function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [pendingProvider, setPendingProvider] = useState<SocialProvider | null>(
-    null,
-  );
+  const [pendingProvider, setPendingProvider] = useState<SocialProvider | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const { data: session } = authClient.useSession();
@@ -50,7 +38,7 @@ export default function LoginForm() {
   useEffect(() => {
     if (session) {
       if (session.user.emailVerified) {
-        router.push("/");
+        router.push("/chat");
       } else {
         router.push(`/auth/verify-email?email=${encodeURIComponent(session.user.email)}`);
       }
@@ -67,9 +55,9 @@ export default function LoginForm() {
     try {
       await authClient.signIn.social({
         provider: provider,
-        callbackURL: "/",
+        callbackURL: "/chat",
       });
-    } catch (err) {
+    } catch {
       toast.error(`Sign in with ${provider} failed!`);
     }
   };
@@ -91,16 +79,14 @@ export default function LoginForm() {
           {
             email: cleanEmail,
             password: cleanPassword,
-            callbackURL: "/",
+            callbackURL: "/chat",
           },
           {
-            onRequest: () => {
-              setIsLoading(true);
-            },
+            onRequest: () => setIsLoading(true),
             onSuccess: () => {
               setIsLoading(false);
               toast.success("Signed in successfully!");
-              router.push("/");
+              router.push("/chat");
               router.refresh();
             },
             onError: (ctx) => {
@@ -118,80 +104,105 @@ export default function LoginForm() {
             },
           },
         );
-      } catch (err: any) {
+      } catch (err: unknown) {
         setIsLoading(false);
-        toast.error(err?.message || "An unexpected error occurred during sign in.");
+        const msg = err instanceof Error ? err.message : "An unexpected error occurred during sign in.";
+        toast.error(msg);
       }
     },
   });
 
   return (
-    <div className="flex items-center justify-center h-dvh">
-      <Card className="w-full max-w-110 border-[#262626] bg-[#121212] text-white">
-        <CardHeader className="space-y-4 pt-4 text-center">
-          <Image
-            src={"/logo.png"}
-            className="h-10 w-10 mx-auto"
-            height={40}
-            width={40}
-            alt="OAGPT"
-          />
-          <CardTitle className="text-[32px] font-semibold tracking-tight text-[#ececec]">
-            Log in OAGPT
-          </CardTitle>
-          <CardDescription className="mx-auto max-w-80 text-[15px] leading-relaxed text-[#b4b4b4]">
-            You&apos;ll get smarter responses and can upload files, images, and
-            more.
-          </CardDescription>
-        </CardHeader>
+    <div className="relative min-h-screen bg-[#141414] text-[#ececec] flex flex-col justify-between p-4 sm:p-6 antialiased font-sans">
+      {/* Ambient background glow matching homepage */}
+      <div
+        className="pointer-events-none absolute top-1/3 left-1/2 -z-10 h-64 w-[500px] -translate-x-1/2 rounded-full bg-white/[0.03] blur-3xl"
+        aria-hidden="true"
+      />
 
-        <CardContent className="flex flex-col gap-3 px-10">
-          {/* Social Buttons */}
-          <div className="flex flex-col gap-3">
-            {/* Google Button */}
+      {/* Top minimal header */}
+      <header className="mx-auto w-full max-w-5xl flex items-center justify-between py-2">
+        <Link
+          href="/"
+          className="flex items-center gap-2.5 text-zinc-400 hover:text-white transition-colors"
+        >
+          <Image
+            src="/logo-white.png"
+            alt="OAGPT"
+            width={22}
+            height={22}
+            className="rounded opacity-90"
+          />
+          <span className="text-sm font-semibold tracking-tight text-white">
+            OAGPT
+          </span>
+        </Link>
+
+        <Link
+          href="/"
+          className="text-xs font-medium text-zinc-400 hover:text-white transition-colors"
+        >
+          Back to home
+        </Link>
+      </header>
+
+      {/* Main Form Card */}
+      <main className="flex items-center justify-center my-auto py-8">
+        <div className="w-full max-w-sm rounded-2xl border border-white/[0.08] bg-[#1a1a1a]/95 p-6 sm:p-8 shadow-2xl shadow-black/50 backdrop-blur-xl">
+          {/* Card Header */}
+          <div className="text-center mb-6">
+            <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-white">
+              Welcome back
+            </h1>
+            <p className="mt-1.5 text-xs text-zinc-400">
+              Log in to OAGPT to continue your conversations.
+            </p>
+          </div>
+
+          {/* Social Logins */}
+          <div className="flex flex-col gap-2.5">
             <Button
               variant="outline"
-              disabled={false}
-              className="h-13 w-full rounded-xl border-[#424242] bg-transparent text-[15px] font-normal transition-colors hover:bg-[#2f2f2f] hover:text-white disabled:opacity-70"
+              className="h-10 w-full rounded-xl border-white/[0.08] bg-white/[0.03] text-xs font-medium text-white transition-all hover:bg-white/[0.06] hover:border-white/15"
               onClick={() => {
                 setPendingProvider("google");
                 handleSocialSignIn("google");
               }}
             >
               {pendingProvider === "google" ? (
-                <Loader2 className="mr-2 size-5 animate-spin" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin text-zinc-400" />
               ) : (
-                <GoogleIcon className="mr-2 size-5" />
+                <GoogleIcon className="mr-2 h-4 w-4" />
               )}
               Continue with Google
             </Button>
 
-            {/* GitHub Button */}
             <Button
               variant="outline"
-              disabled={false}
-              className="h-13 w-full rounded-xl border-[#424242] bg-transparent text-[15px] font-normal transition-colors hover:bg-[#2f2f2f] hover:text-white disabled:opacity-70"
+              className="h-10 w-full rounded-xl border-white/[0.08] bg-white/[0.03] text-xs font-medium text-white transition-all hover:bg-white/[0.06] hover:border-white/15"
               onClick={() => {
                 setPendingProvider("github");
                 handleSocialSignIn("github");
               }}
             >
               {pendingProvider === "github" ? (
-                <Loader2 className="mr-2 size-5 animate-spin" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin text-zinc-400" />
               ) : (
-                <GithubIcon className="mr-2 size-5" />
+                <GithubIcon className="mr-2 h-4 w-4" />
               )}
               Continue with GitHub
             </Button>
           </div>
 
+          {/* Divider */}
           <div className="relative my-6 flex items-center justify-center">
-            <div className="absolute w-full border-t border-[#333]"></div>
-            <span className="relative bg-[#121212] px-3 text-[11px] font-medium uppercase tracking-widest text-[#888]">
-              OR
+            <div className="absolute w-full border-t border-white/[0.06]"></div>
+            <span className="relative bg-[#1a1a1a] px-3 text-[10px] font-mono uppercase tracking-widest text-zinc-500">
+              or
             </span>
           </div>
 
+          {/* Email / Password Form */}
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -201,12 +212,10 @@ export default function LoginForm() {
           >
             <FieldGroup className="flex flex-col gap-1">
               {/* Email Field */}
-              <form.Field
-                name="email"
-                children={(field) => {
+              <form.Field name="email">
+                {(field) => {
                   const hasError =
-                    field.state.meta.isTouched &&
-                    field.state.meta.errors.length > 0;
+                    field.state.meta.isTouched && field.state.meta.errors.length > 0;
                   return (
                     <div className="flex flex-col">
                       <Input
@@ -218,17 +227,14 @@ export default function LoginForm() {
                         type="email"
                         placeholder="Email address"
                         className={cn(
-                          "h-13 rounded-xl border-[#424242] bg-transparent px-4 text-base transition-colors placeholder:text-[#676767] focus:ring-0",
-                          hasError
-                            ? "border-red-500 focus:border-red-500"
-                            : "focus:border-[#676767]",
+                          "h-10 rounded-xl border-white/[0.08] bg-[#121212] px-3.5 text-xs sm:text-sm text-zinc-100 placeholder:text-zinc-500 transition-colors focus:border-white/20 focus:ring-0",
+                          hasError && "border-red-500/80 focus:border-red-500",
                         )}
                       />
-                      {/* Reserved space for error to prevent layout shift */}
                       <div className="min-h-5 px-1 py-0.5">
                         {hasError && (
                           <FieldError
-                            className="text-xs text-red-500 animate-in fade-in slide-in-from-top-1 duration-200"
+                            className="text-[11px] text-red-400"
                             errors={field.state.meta.errors}
                           />
                         )}
@@ -236,15 +242,13 @@ export default function LoginForm() {
                     </div>
                   );
                 }}
-              />
+              </form.Field>
 
               {/* Password Field */}
-              <form.Field
-                name="password"
-                children={(field) => {
+              <form.Field name="password">
+                {(field) => {
                   const hasError =
-                    field.state.meta.isTouched &&
-                    field.state.meta.errors.length > 0;
+                    field.state.meta.isTouched && field.state.meta.errors.length > 0;
                   return (
                     <div className="flex flex-col">
                       <Input
@@ -256,17 +260,14 @@ export default function LoginForm() {
                         type="password"
                         placeholder="Password"
                         className={cn(
-                          "h-13 rounded-xl border-[#424242] bg-transparent px-4 text-base transition-colors placeholder:text-[#676767] focus:ring-0",
-                          hasError
-                            ? "border-red-500 focus:border-red-500"
-                            : "focus:border-[#676767]",
+                          "h-10 rounded-xl border-white/[0.08] bg-[#121212] px-3.5 text-xs sm:text-sm text-zinc-100 placeholder:text-zinc-500 transition-colors focus:border-white/20 focus:ring-0",
+                          hasError && "border-red-500/80 focus:border-red-500",
                         )}
                       />
-                      {/* Reserved space for error to prevent layout shift */}
                       <div className="min-h-5 px-1 py-0.5">
                         {hasError && (
                           <FieldError
-                            className="text-xs text-red-500 animate-in fade-in slide-in-from-top-1 duration-200"
+                            className="text-[11px] text-red-400"
                             errors={field.state.meta.errors}
                           />
                         )}
@@ -274,7 +275,7 @@ export default function LoginForm() {
                     </div>
                   );
                 }}
-              />
+              </form.Field>
 
               {/* Submit Button */}
               <form.Subscribe
@@ -283,33 +284,52 @@ export default function LoginForm() {
                   state.isSubmitting,
                   state.isDirty,
                 ]}
-                children={([canSubmit, isSubmitting, isDirty]) => (
+              >
+                {([canSubmit, isSubmitting, isDirty]) => (
                   <Button
                     type="submit"
-                    className="mt-2 h-13 w-full rounded-full bg-[#ececec] text-[16px] font-semibold text-black hover:bg-white active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#ececec]"
-                    disabled={!canSubmit || !isDirty}
+                    className="mt-1 h-10 w-full rounded-full bg-white text-xs sm:text-sm font-semibold text-black hover:bg-zinc-200 transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+                    disabled={!canSubmit || !isDirty || isSubmitting || isLoading}
                   >
                     {isSubmitting || isLoading ? (
-                      <Loader2 className="size-5 animate-spin" />
+                      <Loader2 className="h-4 w-4 animate-spin text-black" />
                     ) : (
-                      "Continue"
+                      <span className="flex items-center justify-center gap-1">
+                        <span>Continue</span>
+                        <ArrowRight className="h-3.5 w-3.5" />
+                      </span>
                     )}
                   </Button>
                 )}
-              />
+              </form.Subscribe>
             </FieldGroup>
           </form>
-        </CardContent>
 
-        <CardFooter className="flex flex-col items-center pb-4">
-          <div className="text-sm text-[#b4b4b4]">
+          {/* Footer toggle */}
+          <div className="mt-6 pt-5 border-t border-white/[0.06] text-center text-xs text-zinc-400">
             Don&apos;t have an account?{" "}
-            <Link href="/auth/signup" className="text-white hover:underline">
+            <Link
+              href="/auth/signup"
+              className="text-white hover:underline underline-offset-4 transition-colors font-medium"
+            >
               Sign up
             </Link>
           </div>
-        </CardFooter>
-      </Card>
+        </div>
+      </main>
+
+      {/* Bottom attribution */}
+      <footer className="mx-auto w-full max-w-5xl py-2 text-center text-[11px] text-zinc-500">
+        &copy; {new Date().getFullYear()} OAGPT. A project by{" "}
+        <a
+          href="https://ozairahmad.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-zinc-400 hover:text-white transition-colors"
+        >
+          ozairahmad.com
+        </a>
+      </footer>
     </div>
   );
 }

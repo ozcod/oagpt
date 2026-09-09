@@ -3,7 +3,7 @@
 import { useParams, usePathname } from "next/navigation";
 import { Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getStoredThread, getStoredThreads } from "@/lib/chat-storage";
+import { getStoredThread } from "@/lib/chat-storage";
 import { authClient } from "@/lib/auth-client";
 import { toast } from "sonner";
 

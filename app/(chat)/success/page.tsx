@@ -50,7 +50,7 @@ function SuccessContent() {
           </div>
         )}
 
-        <Link href="/" className="w-full block">
+        <Link href="/chat" className="w-full block">
           <Button
             className="h-13 w-full rounded-full bg-[#ececec] text-[16px] font-semibold text-black hover:bg-white active:scale-[0.98] transition-all"
           >

@@ -5,11 +5,10 @@ import {
 } from "@/components/ui/sidebar";
 
 import { headers } from "next/headers";
-import { SessionUser } from "@/types";
 import { redirect } from "next/navigation";
 import { AppSidebar } from "@/components/sidebar/app-sidebar";
 
-import { ChevronDown, UserPlus } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,7 +35,7 @@ export default async function ChatPageLayout({
   if (!session) {
     redirect("/auth/signin");
   }
-  const requireEmailVerification = process.env.REQUIRE_EMAIL_VERIFICATION === "true";
+  const requireEmailVerification = process.env.REQUIRE_EMAIL_VERIFICATION !== "false";
   if (requireEmailVerification && !session.user.emailVerified) {
     redirect("/auth/verify-email");
   }
@@ -63,10 +62,16 @@ export default async function ChatPageLayout({
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="bg-[#2f2f2f] border-[#424242] text-white rounded-xl p-2 min-w-50">
                     <DropdownMenuItem asChild className="rounded-lg focus:bg-[#424242] cursor-pointer">
+                      <Link href="/chat">New Chat</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild className="rounded-lg focus:bg-[#424242] cursor-pointer">
+                      <Link href="/images">AI Image Studio</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild className="rounded-lg focus:bg-[#424242] cursor-pointer">
                       <Link href="/upgrade">OAGPT Plus</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild className="rounded-lg focus:bg-[#424242] cursor-pointer">
-                      <Link href="/">OAGPT</Link>
+                      <Link href="/">Home Page</Link>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
