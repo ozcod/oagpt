@@ -75,7 +75,7 @@ export function AppSidebar({
                   tooltip="New chat"
                   onClick={() => {
                     window.dispatchEvent(new Event("new_chat_requested"));
-                    router.push("/");
+                    router.push("/chat");
                   }}
                   className={cn(
                     "h-9 transition-colors text-[#ececec] hover:bg-[#2f2f2f] data-[state=open]:bg-[#2f2f2f] cursor-pointer",

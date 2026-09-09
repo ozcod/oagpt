@@ -4,29 +4,16 @@ import * as z from "zod";
 import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect } from "react";
-
 import { useRouter } from "next/navigation";
 import { useForm } from "@tanstack/react-form";
-
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, ArrowRight } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { authClient } from "@/lib/auth-client";
-
 import { Button } from "@/components/ui/button";
-
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { FieldError, FieldGroup } from "@/components/ui/field";
-
 import { GithubIcon, GoogleIcon } from "../icons";
 
 const signupSchema = z.object({
@@ -35,7 +22,7 @@ const signupSchema = z.object({
     .trim()
     .min(3, "Username must be at least 3 characters")
     .max(30, "Username cannot exceed 30 characters")
-    .regex(/^[a-zA-Z0-9_-]+$/, "Username can only contain letters, numbers, hyphens, or underscores"),
+    .regex(/^[a-zA-Z0-9_-]+$/, "Letters, numbers, hyphens, and underscores only"),
   email: z
     .string()
     .trim()
@@ -45,17 +32,14 @@ const signupSchema = z.object({
     .string()
     .min(8, "Password must be at least 8 characters")
     .max(100, "Password is too long")
-    .regex(/^(?=.*[A-Za-z])(?=.*\d)/, "Password must contain at least 1 letter and 1 number"),
+    .regex(/^(?=.*[A-Za-z])(?=.*\d)/, "Must contain at least 1 letter and 1 number"),
 });
 
 type SocialProvider = "google" | "github";
 
 export default function SignupForm() {
   const router = useRouter();
-  const [pendingProvider, setPendingProvider] = useState<SocialProvider | null>(
-    null,
-  );
-
+  const [pendingProvider, setPendingProvider] = useState<SocialProvider | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [usernameError, setUsernameError] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -65,7 +49,7 @@ export default function SignupForm() {
   useEffect(() => {
     if (session) {
       if (session.user.emailVerified) {
-        router.push("/");
+        router.push("/chat");
       } else {
         router.push(`/auth/verify-email?email=${encodeURIComponent(session.user.email)}`);
       }
@@ -76,9 +60,9 @@ export default function SignupForm() {
     try {
       await authClient.signIn.social({
         provider: provider,
-        callbackURL: "/",
+        callbackURL: "/chat",
       });
-    } catch (err) {
+    } catch {
       toast.error(`Sign in with ${provider} failed!`);
     }
   };
@@ -98,7 +82,6 @@ export default function SignupForm() {
       setSuggestions([]);
 
       try {
-        // Pre-check availability for existing email or username
         const checkRes = await fetch(
           `/api/auth/check-availability?email=${encodeURIComponent(cleanEmail)}&username=${encodeURIComponent(cleanUsername)}`
         );
@@ -107,16 +90,16 @@ export default function SignupForm() {
 
           if (data.emailExists) {
             setIsLoading(false);
-            toast.info("An account with this email address already exists. Redirecting to Sign In...");
+            toast.info("An account with this email already exists. Redirecting to Sign In...");
             router.push(`/auth/signin?email=${encodeURIComponent(cleanEmail)}`);
             return;
           }
 
           if (data.usernameExists) {
             setIsLoading(false);
-            setUsernameError(`Username "${cleanUsername}" is already taken.`);
+            setUsernameError(`Username "${cleanUsername}" is taken.`);
             setSuggestions(data.suggestions || []);
-            toast.error("Username is already taken. Please pick a suggested username.");
+            toast.error("Username is already taken. Choose a suggested handle.");
             return;
           }
         }
@@ -126,13 +109,13 @@ export default function SignupForm() {
             name: cleanUsername,
             email: cleanEmail,
             password: cleanPassword,
-            callbackURL: "/",
+            callbackURL: "/chat",
           },
           {
             onRequest: () => setIsLoading(true),
             onSuccess: () => {
               setIsLoading(false);
-              toast.success("Account created! Please check your email to verify your account.");
+              toast.success("Account created! Check your email to verify.");
               router.push(`/auth/verify-email?email=${encodeURIComponent(cleanEmail)}`);
             },
             onError: (ctx) => {
@@ -144,7 +127,7 @@ export default function SignupForm() {
                   msg.toLowerCase().includes("in use") ||
                   msg.toLowerCase().includes("registered"))
               ) {
-                toast.info("An account with this email address already exists. Redirecting to Sign In...");
+                toast.info("Account already exists. Redirecting to Sign In...");
                 router.push(`/auth/signin?email=${encodeURIComponent(cleanEmail)}`);
               } else {
                 toast.error(msg);
@@ -152,79 +135,105 @@ export default function SignupForm() {
             },
           }
         );
-      } catch (err: any) {
+      } catch (err: unknown) {
         setIsLoading(false);
-        toast.error(err?.message || "An unexpected error occurred during signup.");
+        const msg = err instanceof Error ? err.message : "An unexpected error occurred during signup.";
+        toast.error(msg);
       }
     },
   });
 
   return (
-    <div className="flex items-center justify-center h-dvh">
-      <Card className="w-full max-w-110 border-[#262626] bg-[#121212] text-white">
-        <CardHeader className="space-y-4 pt-4 text-center">
-          <Image
-            src={"/logo.png"}
-            className="h-10 w-10 mx-auto"
-            height={40}
-            width={40}
-            alt="OAGPT"
-          />
-          <CardTitle className="text-[32px] font-semibold tracking-tight text-[#ececec]">
-            Create an account
-          </CardTitle>
-          <CardDescription className="mx-auto max-w-80 text-[15px] leading-relaxed text-[#b4b4b4]">
-            Join OAGPT to get smarter responses and start building today.
-          </CardDescription>
-        </CardHeader>
+    <div className="relative min-h-screen bg-[#141414] text-[#ececec] flex flex-col justify-between p-4 sm:p-6 antialiased font-sans">
+      {/* Background neutral glow */}
+      <div
+        className="pointer-events-none absolute top-1/3 left-1/2 -z-10 h-64 w-[500px] -translate-x-1/2 rounded-full bg-white/[0.03] blur-3xl"
+        aria-hidden="true"
+      />
 
-        <CardContent className="flex flex-col gap-3 px-10">
-          {/* Social Buttons */}
-          <div className="flex flex-col gap-3">
-            {/* Google Button */}
+      {/* Top minimal header */}
+      <header className="mx-auto w-full max-w-5xl flex items-center justify-between py-2">
+        <Link
+          href="/"
+          className="flex items-center gap-2.5 text-zinc-400 hover:text-white transition-colors"
+        >
+          <Image
+            src="/logo-white.png"
+            alt="OAGPT"
+            width={22}
+            height={22}
+            className="rounded opacity-90"
+          />
+          <span className="text-sm font-semibold tracking-tight text-white">
+            OAGPT
+          </span>
+        </Link>
+
+        <Link
+          href="/"
+          className="text-xs font-medium text-zinc-400 hover:text-white transition-colors"
+        >
+          Back to home
+        </Link>
+      </header>
+
+      {/* Main Form Card */}
+      <main className="flex items-center justify-center my-auto py-8">
+        <div className="w-full max-w-sm rounded-2xl border border-white/[0.08] bg-[#1a1a1a]/95 p-6 sm:p-8 shadow-2xl shadow-black/50 backdrop-blur-xl">
+          {/* Card Header */}
+          <div className="text-center mb-6">
+            <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-white">
+              Create an account
+            </h1>
+            <p className="mt-1.5 text-xs text-zinc-400">
+              Start building with unified frontier intelligence.
+            </p>
+          </div>
+
+          {/* Social Logins */}
+          <div className="flex flex-col gap-2.5">
             <Button
               variant="outline"
-              disabled={false}
-              className="h-13 w-full rounded-xl border-[#424242] bg-transparent text-[15px] font-normal transition-colors hover:bg-[#2f2f2f] hover:text-white disabled:opacity-70"
+              className="h-10 w-full rounded-xl border-white/[0.08] bg-white/[0.03] text-xs font-medium text-white transition-all hover:bg-white/[0.06] hover:border-white/15"
               onClick={() => {
                 setPendingProvider("google");
                 handleSocialSignIn("google");
               }}
             >
               {pendingProvider === "google" ? (
-                <Loader2 className="mr-2 size-5 animate-spin" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin text-zinc-400" />
               ) : (
-                <GoogleIcon className="mr-2 size-5" />
+                <GoogleIcon className="mr-2 h-4 w-4" />
               )}
               Continue with Google
             </Button>
 
-            {/* GitHub Button */}
             <Button
               variant="outline"
-              disabled={false}
-              className="h-13 w-full rounded-xl border-[#424242] bg-transparent text-[15px] font-normal transition-colors hover:bg-[#2f2f2f] hover:text-white disabled:opacity-70"
+              className="h-10 w-full rounded-xl border-white/[0.08] bg-white/[0.03] text-xs font-medium text-white transition-all hover:bg-white/[0.06] hover:border-white/15"
               onClick={() => {
                 setPendingProvider("github");
                 handleSocialSignIn("github");
               }}
             >
               {pendingProvider === "github" ? (
-                <Loader2 className="mr-2 size-5 animate-spin" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin text-zinc-400" />
               ) : (
-                <GithubIcon className="mr-2 size-5" />
+                <GithubIcon className="mr-2 h-4 w-4" />
               )}
               Continue with GitHub
             </Button>
           </div>
 
-          <div className="relative my-4 flex items-center justify-center">
-            <div className="absolute w-full border-t border-[#333]"></div>
-            <span className="relative bg-[#121212] px-3 text-[11px] font-medium uppercase tracking-widest text-[#888]">
-              OR
+          {/* Divider */}
+          <div className="relative my-6 flex items-center justify-center">
+            <div className="absolute w-full border-t border-white/[0.06]"></div>
+            <span className="relative bg-[#1a1a1a] px-3 text-[10px] font-mono uppercase tracking-widest text-zinc-500">
+              or
             </span>
           </div>
 
+          {/* Signup Form */}
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -234,9 +243,8 @@ export default function SignupForm() {
           >
             <FieldGroup className="flex flex-col gap-1">
               {/* Username Field */}
-              <form.Field
-                name="username"
-                children={(field) => {
+              <form.Field name="username">
+                {(field) => {
                   const hasError =
                     (field.state.meta.isTouched && field.state.meta.errors.length > 0) ||
                     !!usernameError;
@@ -251,29 +259,27 @@ export default function SignupForm() {
                         }}
                         placeholder="Username"
                         className={cn(
-                          "h-13 rounded-xl border-[#424242] bg-transparent px-4 text-base transition-colors focus:ring-0",
-                          hasError
-                            ? "border-red-500"
-                            : "focus:border-[#676767]",
+                          "h-10 rounded-xl border-white/[0.08] bg-[#121212] px-3.5 text-xs sm:text-sm text-zinc-100 placeholder:text-zinc-500 transition-colors focus:border-white/20 focus:ring-0",
+                          hasError && "border-red-500/80 focus:border-red-500",
                         )}
                       />
                       <div className="min-h-5 px-1 py-0.5">
                         {field.state.meta.isTouched && field.state.meta.errors.length > 0 ? (
                           <FieldError
-                            className="text-xs text-red-500 animate-in fade-in slide-in-from-top-1 duration-200"
+                            className="text-[11px] text-red-400"
                             errors={field.state.meta.errors}
                           />
                         ) : usernameError ? (
-                          <span className="text-xs text-red-500 animate-in fade-in slide-in-from-top-1 duration-200">
+                          <span className="text-[11px] text-red-400">
                             {usernameError}
                           </span>
                         ) : null}
                       </div>
 
                       {suggestions.length > 0 && (
-                        <div className="mb-2 flex flex-col gap-1.5 rounded-xl border border-[#333] bg-[#1a1a1a] p-3 text-xs">
-                          <span className="font-medium text-[#a1a1a1]">Suggested usernames:</span>
-                          <div className="flex flex-wrap gap-2">
+                        <div className="mb-2 flex flex-col gap-1.5 rounded-xl border border-white/[0.08] bg-[#161616] p-3 text-xs">
+                          <span className="text-[11px] font-mono text-zinc-400">Suggested handles:</span>
+                          <div className="flex flex-wrap gap-1.5">
                             {suggestions.map((sug) => (
                               <button
                                 key={sug}
@@ -283,7 +289,7 @@ export default function SignupForm() {
                                   setUsernameError(null);
                                   setSuggestions([]);
                                 }}
-                                className="rounded-lg border border-[#424242] bg-[#262626] px-2.5 py-1 text-xs font-medium text-white transition-colors hover:border-blue-500 hover:bg-blue-600/20 hover:text-blue-400"
+                                className="rounded-md border border-white/[0.08] bg-white/[0.04] px-2 py-0.5 text-xs font-mono text-zinc-300 transition-colors hover:bg-white/10 hover:text-white"
                               >
                                 {sug}
                               </button>
@@ -294,34 +300,30 @@ export default function SignupForm() {
                     </div>
                   );
                 }}
-              />
+              </form.Field>
 
               {/* Email Field */}
-              <form.Field
-                name="email"
-                children={(field) => {
+              <form.Field name="email">
+                {(field) => {
                   const hasError =
-                    field.state.meta.isTouched &&
-                    field.state.meta.errors.length > 0;
+                    field.state.meta.isTouched && field.state.meta.errors.length > 0;
                   return (
                     <div className="flex flex-col">
                       <Input
-                        type="email"
                         value={field.state.value}
                         onBlur={field.handleBlur}
                         onChange={(e) => field.handleChange(e.target.value)}
+                        type="email"
                         placeholder="Email address"
                         className={cn(
-                          "h-13 rounded-xl border-[#424242] bg-transparent px-4 text-base transition-colors focus:ring-0",
-                          hasError
-                            ? "border-red-500"
-                            : "focus:border-[#676767]",
+                          "h-10 rounded-xl border-white/[0.08] bg-[#121212] px-3.5 text-xs sm:text-sm text-zinc-100 placeholder:text-zinc-500 transition-colors focus:border-white/20 focus:ring-0",
+                          hasError && "border-red-500/80 focus:border-red-500",
                         )}
                       />
                       <div className="min-h-5 px-1 py-0.5">
                         {hasError && (
                           <FieldError
-                            className="text-xs text-red-500 animate-in fade-in slide-in-from-top-1 duration-200"
+                            className="text-[11px] text-red-400"
                             errors={field.state.meta.errors}
                           />
                         )}
@@ -329,34 +331,30 @@ export default function SignupForm() {
                     </div>
                   );
                 }}
-              />
+              </form.Field>
 
               {/* Password Field */}
-              <form.Field
-                name="password"
-                children={(field) => {
+              <form.Field name="password">
+                {(field) => {
                   const hasError =
-                    field.state.meta.isTouched &&
-                    field.state.meta.errors.length > 0;
+                    field.state.meta.isTouched && field.state.meta.errors.length > 0;
                   return (
                     <div className="flex flex-col">
                       <Input
-                        type="password"
                         value={field.state.value}
                         onBlur={field.handleBlur}
                         onChange={(e) => field.handleChange(e.target.value)}
-                        placeholder="Password"
+                        type="password"
+                        placeholder="Password (min. 8 characters)"
                         className={cn(
-                          "h-13 rounded-xl border-[#424242] bg-transparent px-4 text-base transition-colors focus:ring-0",
-                          hasError
-                            ? "border-red-500"
-                            : "focus:border-[#676767]",
+                          "h-10 rounded-xl border-white/[0.08] bg-[#121212] px-3.5 text-xs sm:text-sm text-zinc-100 placeholder:text-zinc-500 transition-colors focus:border-white/20 focus:ring-0",
+                          hasError && "border-red-500/80 focus:border-red-500",
                         )}
                       />
                       <div className="min-h-5 px-1 py-0.5">
                         {hasError && (
                           <FieldError
-                            className="text-xs text-red-500 animate-in fade-in slide-in-from-top-1 duration-200"
+                            className="text-[11px] text-red-400"
                             errors={field.state.meta.errors}
                           />
                         )}
@@ -364,43 +362,61 @@ export default function SignupForm() {
                     </div>
                   );
                 }}
-              />
+              </form.Field>
 
+              {/* Submit Button */}
               <form.Subscribe
                 selector={(state) => [
                   state.canSubmit,
                   state.isSubmitting,
                   state.isDirty,
                 ]}
-                children={([canSubmit, isSubmitting, isDirty]) => (
+              >
+                {([canSubmit, isSubmitting, isDirty]) => (
                   <Button
                     type="submit"
-                    className="mt-2 h-13 w-full rounded-full bg-[#ececec] text-[16px] font-semibold text-black hover:bg-white disabled:opacity-50"
-                    disabled={!canSubmit || !isDirty}
+                    className="mt-1 h-10 w-full rounded-full bg-white text-xs sm:text-sm font-semibold text-black hover:bg-zinc-200 transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+                    disabled={!canSubmit || !isDirty || isSubmitting || isLoading}
                   >
                     {isSubmitting || isLoading ? (
-                      <Loader2 className="size-5 animate-spin" />
+                      <Loader2 className="h-4 w-4 animate-spin text-black" />
                     ) : (
-                      "Sign Up"
+                      <span className="flex items-center justify-center gap-1">
+                        <span>Create account</span>
+                        <ArrowRight className="h-3.5 w-3.5" />
+                      </span>
                     )}
                   </Button>
                 )}
-              />
+              </form.Subscribe>
             </FieldGroup>
           </form>
-        </CardContent>
 
-        <CardFooter className="flex flex-col items-center pb-6">
-          <div className="text-sm text-[#b4b4b4]">
+          {/* Footer toggle */}
+          <div className="mt-6 pt-5 border-t border-white/[0.06] text-center text-xs text-zinc-400">
             Already have an account?{" "}
-            <Link href="/auth/signin" className="text-white hover:underline">
-              Sign In
+            <Link
+              href="/auth/signin"
+              className="text-white hover:underline underline-offset-4 transition-colors font-medium"
+            >
+              Sign in
             </Link>
           </div>
-        </CardFooter>
-      </Card>
+        </div>
+      </main>
+
+      {/* Bottom attribution */}
+      <footer className="mx-auto w-full max-w-5xl py-2 text-center text-[11px] text-zinc-500">
+        &copy; {new Date().getFullYear()} OAGPT. A project by{" "}
+        <a
+          href="https://ozairahmad.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-zinc-400 hover:text-white transition-colors"
+        >
+          ozairahmad.com
+        </a>
+      </footer>
     </div>
   );
 }
-
-// Icons (GoogleIcon, etc.) should remain as they were in the login file...

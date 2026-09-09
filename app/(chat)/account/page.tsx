@@ -67,8 +67,8 @@ export default function AccountPage() {
       await refetch();
       toast.success("Display name updated.");
       setIsEditingName(false);
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to update display name.");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to update display name.");
     } finally {
       setIsSavingName(false);
     }
@@ -93,7 +93,7 @@ export default function AccountPage() {
           },
         },
       });
-    } catch (err) {
+    } catch {
       toast.error("Failed to sign out");
       setIsSigningOut(false);
     }

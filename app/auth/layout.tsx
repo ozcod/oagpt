@@ -15,7 +15,7 @@ export default async function RootLayout({
   if (session) {
     // Only redirect to home if user's email is verified (or verification is disabled)
     if (!requireEmailVerification || session.user.emailVerified) {
-      redirect("/");
+      redirect("/chat");
     }
   }
 

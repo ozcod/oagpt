@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import InputContainer from "./input-container";
 import { useModel } from "@/context/model-context";
 import {
@@ -72,7 +71,6 @@ interface ChatInterfaceProps {
 
 export const ChatInterfaceNew = ({ threadId }: ChatInterfaceProps) => {
   const { selectedModel } = useModel();
-  const router = useRouter();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [activeThreadId, setActiveThreadId] = useState<string | undefined>(
@@ -107,7 +105,7 @@ export const ChatInterfaceNew = ({ threadId }: ChatInterfaceProps) => {
       setActiveThreadId(undefined);
       setMessages([]);
       setIsEditingLast(false);
-      window.history.replaceState(null, "", "/");
+      window.history.replaceState(null, "", "/chat");
     };
     window.addEventListener("new_chat_requested", handleNewChatEvent);
     return () => window.removeEventListener("new_chat_requested", handleNewChatEvent);
@@ -207,15 +205,16 @@ export const ChatInterfaceNew = ({ threadId }: ChatInterfaceProps) => {
           userId
         );
       }
-    } catch (error: any) {
-      if (error?.name === "AbortError") {
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === "AbortError") {
         console.log("Stream generation aborted by user.");
         return;
       }
       console.error("Error sending message:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to reach AI service";
       const errorMsg: ChatMessage = {
         role: "assistant",
-        content: `Error: ${error?.message || "Failed to reach AI service"}`,
+        content: `Error: ${errorMessage}`,
         model: selectedModel,
       };
       const finalMessages = [...updatedMessages, errorMsg];

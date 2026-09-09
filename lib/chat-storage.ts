@@ -25,7 +25,7 @@ export function getStoredThreads(userId?: string): ChatThread[] {
   try {
     const data = localStorage.getItem(key);
     return data ? JSON.parse(data) : [];
-  } catch (e) {
+  } catch (e: unknown) {
     console.error("Failed to read threads from localStorage", e);
     return [];
   }
@@ -52,7 +52,7 @@ export function saveStoredThread(thread: ChatThread, userId?: string): void {
     }
     localStorage.setItem(key, JSON.stringify(threads));
     window.dispatchEvent(new Event("chat_threads_updated"));
-  } catch (e) {
+  } catch (e: unknown) {
     console.error("Failed to save thread to localStorage", e);
   }
 }
@@ -65,7 +65,7 @@ export function deleteStoredThread(id: string, userId?: string): void {
     const threads = getStoredThreads(userId).filter((t) => t.id !== id);
     localStorage.setItem(key, JSON.stringify(threads));
     window.dispatchEvent(new Event("chat_threads_updated"));
-  } catch (e) {
+  } catch (e: unknown) {
     console.error("Failed to delete thread from localStorage", e);
   }
 }

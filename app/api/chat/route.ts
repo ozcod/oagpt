@@ -4,7 +4,7 @@ import { checkRateLimit } from "@/lib/rate-limit";
 import { auth } from "@/lib/auth";
 import { db } from "@/db";
 import { chatThread, chatMessage } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 
 export async function POST(request: Request) {
@@ -19,6 +19,10 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { messages, model: modelId, threadId } = body;
 
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return Response.json({ error: "Messages array is required" }, { status: 400 });
+    }
+
     const session = await auth.api.getSession({ headers: request.headers });
 
     const selectedModel = getDynamicModel(
@@ -26,7 +30,7 @@ export async function POST(request: Request) {
     );
 
     // Convert input messages to LangChain messages
-    const lcMessages = (messages || []).map(
+    const lcMessages = messages.map(
       (m: { role: string; content: string }) => {
         if (m.role === "user") {
           return new HumanMessage(m.content);
@@ -59,10 +63,30 @@ export async function POST(request: Request) {
           userId: session.user.id,
         });
       } else {
-        await db
-          .update(chatThread)
-          .set({ updatedAt: new Date() })
-          .where(eq(chatThread.id, activeThreadId));
+        // Verify ownership to prevent IDOR vulnerabilities
+        const [existing] = await db
+          .select()
+          .from(chatThread)
+          .where(
+            and(
+              eq(chatThread.id, activeThreadId),
+              eq(chatThread.userId, session.user.id)
+            )
+          );
+
+        if (!existing) {
+          activeThreadId = uuidv4();
+          await db.insert(chatThread).values({
+            id: activeThreadId,
+            title,
+            userId: session.user.id,
+          });
+        } else {
+          await db
+            .update(chatThread)
+            .set({ updatedAt: new Date() })
+            .where(eq(chatThread.id, activeThreadId));
+        }
       }
 
       // Save user message if provided
@@ -91,10 +115,11 @@ export async function POST(request: Request) {
       content: responseText,
       threadId: activeThreadId,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Chat API error:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to generate AI response";
     return Response.json(
-      { error: error?.message || "Failed to generate AI response" },
+      { error: errorMessage },
       { status: 500 }
     );
   }

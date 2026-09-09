@@ -8,7 +8,6 @@ import {
   CreditCard,
   LogOut,
   Sparkles,
-  User as UserIcon,
 } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";

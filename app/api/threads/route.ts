@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/db";
-import { chatThread, chatMessage } from "@/db/schema";
-import { eq, desc, asc } from "drizzle-orm";
+import { chatThread } from "@/db/schema";
+import { eq, desc } from "drizzle-orm";
 import { checkRateLimit } from "@/lib/rate-limit";
 
 // GET /api/threads - Fetch all chat threads for authenticated user
@@ -23,8 +23,9 @@ export async function GET(req: Request) {
       .orderBy(desc(chatThread.updatedAt));
 
     return NextResponse.json(threads);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error fetching threads:", error);
-    return NextResponse.json({ error: error?.message || "Failed to fetch threads" }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : "Failed to fetch threads";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

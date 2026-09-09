@@ -28,7 +28,7 @@ export const auth = betterAuth({
         ) {
           return [url.origin];
         }
-      } catch (e) {}
+      } catch {}
     }
     return allowed;
   },
@@ -46,14 +46,14 @@ export const auth = betterAuth({
     autoSignInAfterVerification: true,
     async sendVerificationEmail({ user, url }: { user: { name?: string; email: string }; url: string }) {
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-      const signinCallback = `${baseUrl}/`;
+      const signinCallback = `${baseUrl}/chat`;
 
       let verificationLink = url;
       try {
         const parsedUrl = new URL(url, baseUrl);
         parsedUrl.searchParams.set("callbackURL", signinCallback);
         verificationLink = parsedUrl.toString();
-      } catch (e) {
+      } catch {
         // Fallback to original url
       }
 
@@ -121,8 +121,8 @@ export const auth = betterAuth({
             </html>
           `,
         });
-      } catch (err: any) {
-        // Silently handle send email error or rethrow
+      } catch (err: unknown) {
+        console.error("Failed to send verification email:", err);
       }
     },
   },

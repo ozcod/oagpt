@@ -2,8 +2,15 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { user } from "@/db/schema/auth-schema";
 import { sql } from "drizzle-orm";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export async function GET(request: Request) {
+  const rateLimitError = checkRateLimit(request, "check-availability", {
+    limit: 30,
+    windowSeconds: 60,
+  });
+  if (rateLimitError) return rateLimitError;
+
   try {
     const { searchParams } = new URL(request.url);
     const email = searchParams.get("email")?.trim().toLowerCase();
@@ -65,7 +72,8 @@ export async function GET(request: Request) {
       usernameExists,
       suggestions,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    console.error("Check availability error:", error);
     return NextResponse.json(
       { emailExists: false, usernameExists: false, suggestions: [] },
       { status: 500 }

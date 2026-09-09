@@ -51,8 +51,8 @@ export default function ImagesPage() {
       };
 
       setImagesHistory((prev) => [newImage, ...prev]);
-    } catch (err: any) {
-      setError(err?.message || "An error occurred while generating the image.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "An error occurred while generating the image.");
     } finally {
       setIsGenerating(false);
     }
