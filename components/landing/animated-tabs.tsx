@@ -13,6 +13,8 @@ import {
   Copy,
   Check,
   Command,
+  Pause,
+  Play,
 } from "lucide-react";
 
 interface TabItem {
@@ -150,9 +152,19 @@ export function AnimatedTabs() {
               Designed around your flow.
             </h2>
           </div>
-          <span className="text-xs font-mono text-zinc-500">
-            {isPaused ? "Paused on hover" : "Auto-playing showcase"}
-          </span>
+          <button
+            type="button"
+            onClick={() => setIsPaused((prev) => !prev)}
+            className="flex items-center justify-center h-7 w-7 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-zinc-400 hover:text-white transition-all cursor-pointer"
+            title={isPaused ? "Showcase paused (click to play)" : "Auto-playing showcase (click to pause)"}
+            aria-label={isPaused ? "Play showcase" : "Pause showcase"}
+          >
+            {isPaused ? (
+              <Pause className="h-3 w-3 fill-zinc-400 text-zinc-400" />
+            ) : (
+              <Play className="h-3 w-3 fill-zinc-400 text-zinc-400 translate-x-[0.5px]" />
+            )}
+          </button>
         </div>
 
         {/* Tab Navigation Buttons with Animated Progress Bars */}
@@ -198,7 +210,7 @@ export function AnimatedTabs() {
         </div>
 
         {/* Dynamic Tab Content Area */}
-        <div className="mt-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center min-h-[420px]">
+        <div className="mt-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center min-h-0 lg:min-h-[420px]">
           {/* Left Column: Narrative */}
           <div className="lg:col-span-5 space-y-4">
             <span className="text-[11px] font-mono text-zinc-500 uppercase tracking-wider">

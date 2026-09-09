@@ -119,16 +119,7 @@ export async function LandingFooter() {
               </div>
 
               <p className="mt-2 text-xs text-zinc-400 max-w-md leading-relaxed">
-                A project by{" "}
-                <a
-                  href="https://ozairahmad.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-medium text-white hover:text-blue-400 underline underline-offset-4 transition-colors"
-                >
-                  ozairahmad.com
-                </a>
-                . Engineered for deep reasoning, rapid code synthesis, and photorealistic AI image generation.
+                Engineered for deep reasoning, rapid code synthesis, and photorealistic AI image generation.
               </p>
             </div>
 

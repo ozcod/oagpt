@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-export function useTypewriter(text: string, speed = 25, isNew = true): string {
+export function useTypewriter(text: string, speed = 42, isNew = true): string {
   const [displayedText, setDisplayedText] = useState(isNew ? "" : text);
 
   useEffect(() => {
@@ -18,18 +18,28 @@ export function useTypewriter(text: string, speed = 25, isNew = true): string {
 
     const words = text.split(" ");
     let currentIndex = 0;
+    let timer: NodeJS.Timeout;
     setDisplayedText("");
 
-    const timer = setInterval(() => {
+    const typeNextWord = () => {
       if (currentIndex < words.length) {
+        const word = words[currentIndex];
         setDisplayedText(words.slice(0, currentIndex + 1).join(" "));
         currentIndex++;
-      } else {
-        clearInterval(timer);
-      }
-    }, speed);
 
-    return () => clearInterval(timer);
+        let delay = speed;
+        if (word.endsWith(".") || word.endsWith("?") || word.endsWith("!")) {
+          delay = speed + 65;
+        } else if (word.endsWith(",") || word.endsWith(":") || word.endsWith(";")) {
+          delay = speed + 30;
+        }
+
+        timer = setTimeout(typeNextWord, delay);
+      }
+    };
+
+    timer = setTimeout(typeNextWord, 40);
+    return () => clearTimeout(timer);
   }, [text, speed, isNew]);
 
   return displayedText;
