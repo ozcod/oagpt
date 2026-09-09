@@ -52,7 +52,7 @@ export const MODEL_REGISTRY: Record<ModelId, ModelConfig> = {
   },
   "llama-3-3-70b-free": {
     provider: "openai",
-    tier: "free",
+    tier: "subscription",
     options: { temperature: 0 },
   },
 };
@@ -80,6 +80,7 @@ function createModel(modelId: ModelId, config: ModelConfig) {
       return new ChatOpenAI({
         model: "deepseek/deepseek-r1",
         temperature: 0,
+        maxTokens: 1000,
         apiKey: process.env.OPENROUTER_API_KEY,
         configuration: {
           baseURL: "https://openrouter.ai/api/v1",
@@ -92,8 +93,9 @@ function createModel(modelId: ModelId, config: ModelConfig) {
   if (modelId === "llama-3-3-70b-free") {
     if (process.env.OPENROUTER_API_KEY) {
       return new ChatOpenAI({
-        model: "meta-llama/llama-3.3-70b-instruct",
+        model: "meta-llama/llama-3.3-70b-instruct:free",
         temperature: 0,
+        maxTokens: 2048,
         apiKey: process.env.OPENROUTER_API_KEY,
         configuration: {
           baseURL: "https://openrouter.ai/api/v1",
@@ -134,7 +136,16 @@ function createModel(modelId: ModelId, config: ModelConfig) {
       apiKey: process.env.GOOGLE_API_KEY,
     });
   } else if (config.provider === "anthropic") {
-    // todo: create anthropic chat instance
+    if (process.env.OPENROUTER_API_KEY) {
+      return new ChatOpenAI({
+        model: "anthropic/claude-3.5-sonnet",
+        temperature: 0,
+        apiKey: process.env.OPENROUTER_API_KEY,
+        configuration: {
+          baseURL: "https://openrouter.ai/api/v1",
+        },
+      });
+    }
     return getDefaultModel();
   }
 

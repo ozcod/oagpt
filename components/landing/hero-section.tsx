@@ -1,34 +1,265 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, ArrowUp, Sparkles } from "lucide-react";
+import {
+  ArrowRight,
+  ArrowUp,
+  Sparkles,
+  Loader2,
+  Copy,
+  Check,
+  RotateCcw,
+  Lock,
+} from "lucide-react";
+import {
+  ChatMessage,
+  GUEST_MAX_CREDITS,
+  getGuestMessages,
+  getGuestRemainingCredits,
+  getOrCreateGuestId,
+  incrementGuestCredits,
+  saveGuestMessages,
+  clearGuestMessages,
+} from "@/lib/chat-storage";
+import { toast } from "sonner";
 
 const QUICK_MODELS = [
-  { id: "deepseek", name: "DeepSeek R1", badge: "Reasoning" },
-  { id: "gemini", name: "Gemini 2.5", badge: "Speed" },
-  { id: "claude", name: "Claude 3.5", badge: "Code" },
-  { id: "gpt4o", name: "GPT-4o", badge: "General" },
-  { id: "flux", name: "FLUX 1", badge: "Studio" },
+  { id: "deepseek-r1-free", name: "DeepSeek R1", badge: "Reasoning", isPaid: false },
+  { id: "gemini-2.5-flash", name: "Gemini 2.5", badge: "Speed", isPaid: false },
+  { id: "llama-3-3-70b-free", name: "Llama 3.3", badge: "Plus", isPaid: true },
+  { id: "claude-3-5-sonnet", name: "Claude 3.5", badge: "Plus", isPaid: true },
+  { id: "gpt-4o", name: "GPT-4o", badge: "Plus", isPaid: true },
 ];
 
 const SUGGESTIONS = [
-  { label: "Refactor API with Drizzle ORM", href: "/chat" },
-  { label: "Analyze complexity bounds with DeepSeek", href: "/chat" },
-  { label: "Render 1024x1024 concept art with FLUX", href: "/images" },
+  "Explain quantum computing in one analogy",
+  "Write an optimized TypeScript debounce utility",
+  "Compare PostgreSQL vs Redis for sessions",
 ];
 
+const PLAYFUL_THOUGHTS: Record<string, string[]> = {
+  "deepseek-r1-free": [
+    "Untangling recursive proof trees...",
+    "Traversing latent logic branches...",
+    "Consulting mathematical axioms...",
+    "Verifying boundary constraints...",
+    "Formulating the solution...",
+  ],
+  "gemini-2.5-flash": [
+    "Warming up neural tensor cores...",
+    "Scanning 1M token context horizon...",
+    "Connecting cognitive synapses...",
+    "Brewing a rapid response...",
+    "Polishing the final insight...",
+  ],
+  default: [
+    "Thinking through your prompt...",
+    "Synthesizing knowledge...",
+    "Connecting the dots...",
+    "Formulating the response...",
+  ],
+};
+
+function TypingResponse({
+  content,
+  isNew,
+  onProgress,
+  onComplete,
+}: {
+  content: string;
+  isNew: boolean;
+  onProgress?: () => void;
+  onComplete?: () => void;
+}) {
+  const [displayed, setDisplayed] = useState(isNew ? "" : content);
+  const [isTyping, setIsTyping] = useState(isNew);
+
+  useEffect(() => {
+    if (!isNew) {
+      setDisplayed(content);
+      setIsTyping(false);
+      return;
+    }
+
+    const words = content.split(" ");
+    let i = 0;
+    setDisplayed("");
+    setIsTyping(true);
+
+    const interval = setInterval(() => {
+      if (i < words.length) {
+        setDisplayed(words.slice(0, i + 1).join(" "));
+        i++;
+        onProgress?.();
+      } else {
+        clearInterval(interval);
+        setIsTyping(false);
+        onComplete?.();
+      }
+    }, 18);
+
+    return () => clearInterval(interval);
+  }, [content, isNew, onProgress, onComplete]);
+
+  return (
+    <div className="whitespace-pre-wrap font-sans">
+      {displayed}
+      {isTyping && (
+        <span className="inline-block w-1.5 h-3.5 ml-0.5 align-middle bg-white/70 animate-pulse" />
+      )}
+    </div>
+  );
+}
+
 export function HeroSection() {
-  const router = useRouter();
   const [selectedModel, setSelectedModel] = useState(QUICK_MODELS[0].id);
   const [promptText, setPromptText] = useState("");
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [remainingCredits, setRemainingCredits] = useState<number>(GUEST_MAX_CREDITS);
+  const [isLoading, setIsLoading] = useState(false);
+  const [thinkingIndex, setThinkingIndex] = useState(0);
+  const [animatingLast, setAnimatingLast] = useState(false);
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    router.push("/chat");
+  const chatContainerRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  const scrollContainerToBottom = useCallback(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, []);
+
+  // Initialize guest identity & local storage data silently
+  useEffect(() => {
+    getOrCreateGuestId();
+    setRemainingCredits(getGuestRemainingCredits());
+    setMessages(getGuestMessages());
+
+    const handleGuestUpdate = () => {
+      setRemainingCredits(getGuestRemainingCredits());
+      setMessages(getGuestMessages());
+    };
+
+    window.addEventListener("oagpt_guest_updated", handleGuestUpdate);
+    return () => window.removeEventListener("oagpt_guest_updated", handleGuestUpdate);
+  }, []);
+
+  // Cycle playful placeholder thoughts while thinking (without scrolling page)
+  useEffect(() => {
+    if (!isLoading) {
+      setThinkingIndex(0);
+      return;
+    }
+    const timer = setInterval(() => {
+      setThinkingIndex((prev) => prev + 1);
+    }, 1800);
+    return () => clearInterval(timer);
+  }, [isLoading]);
+
+  const handleSendPrompt = async (textToSend?: string) => {
+    const text = (textToSend || promptText).trim();
+    if (!text) return;
+
+    if (remainingCredits <= 0) {
+      toast.info("Free preview limit reached. Sign up for unlimited queries.");
+      return;
+    }
+
+    const targetModel = QUICK_MODELS.find((m) => m.id === selectedModel);
+    if (targetModel?.isPaid) {
+      toast.info(`${targetModel.name} requires a Plus plan. Please select a free trial model.`);
+      return;
+    }
+
+    const updatedCreditsUsed = incrementGuestCredits();
+    setRemainingCredits(Math.max(0, GUEST_MAX_CREDITS - updatedCreditsUsed));
+
+    const userMsg: ChatMessage = {
+      role: "user",
+      content: text,
+      model: selectedModel,
+    };
+
+    const updatedMessages = [...messages, userMsg];
+    setMessages(updatedMessages);
+    saveGuestMessages(updatedMessages);
+    setPromptText("");
+    setIsLoading(true);
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: updatedMessages.map((m) => ({
+            role: m.role,
+            content: m.content,
+          })),
+          model: selectedModel,
+        }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData?.error || "Failed to receive response");
+      }
+
+      const data = await res.json();
+      const assistantMsg: ChatMessage = {
+        role: "assistant",
+        content: data.content || "No response received.",
+        model: selectedModel,
+      };
+
+      const finalMessages = [...updatedMessages, assistantMsg];
+      setMessages(finalMessages);
+      saveGuestMessages(finalMessages);
+      setAnimatingLast(true);
+      setTimeout(scrollContainerToBottom, 30);
+    } catch (err: unknown) {
+      console.error("Hero chat error:", err);
+      const errMsg = err instanceof Error ? err.message : "Error contacting model";
+      const errorAssistantMsg: ChatMessage = {
+        role: "assistant",
+        content: `Error: ${errMsg}. Please try again with another model.`,
+        model: selectedModel,
+      };
+      const finalMessages = [...updatedMessages, errorAssistantMsg];
+      setMessages(finalMessages);
+      saveGuestMessages(finalMessages);
+      setTimeout(scrollContainerToBottom, 30);
+      toast.error(errMsg);
+    } finally {
+      setIsLoading(false);
+      setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 100);
+    }
   };
+
+  const handleCopy = (content: string, index: number) => {
+    navigator.clipboard.writeText(content);
+    setCopiedIndex(index);
+    toast.success("Copied");
+    setTimeout(() => setCopiedIndex(null), 1800);
+  };
+
+  const handleClearChat = () => {
+    clearGuestMessages();
+    setMessages([]);
+    setAnimatingLast(false);
+  };
+
+  const handleTypingComplete = useCallback(() => {
+    setAnimatingLast(false);
+  }, []);
+
+  const currentModelObj = QUICK_MODELS.find((m) => m.id === selectedModel) || QUICK_MODELS[0];
+  const hasMessages = messages.length > 0;
+
+  const currentThoughts = PLAYFUL_THOUGHTS[selectedModel] || PLAYFUL_THOUGHTS.default;
+  const activeThinkingText = currentThoughts[thinkingIndex % currentThoughts.length];
 
   return (
     <section className="relative pt-16 pb-20 sm:pt-24 sm:pb-28 overflow-hidden text-center">
@@ -53,7 +284,7 @@ export function HeroSection() {
           Frontier reasoning, code synthesis, and image generation in a single, focused interface.
         </p>
 
-        {/* Minimal CTAs */}
+        {/* Action CTAs */}
         <div className="mt-8 flex items-center justify-center gap-3">
           <Link href="/chat">
             <Button
@@ -76,74 +307,254 @@ export function HeroSection() {
           </Link>
         </div>
 
-        {/* Abstracted Workspace Prompt Capsule */}
-        <div className="mt-12 mx-auto max-w-2xl text-left">
-          <form
-            onSubmit={handleSubmit}
-            className="rounded-2xl border border-white/[0.08] bg-[#1a1a1a]/95 p-4 sm:p-5 shadow-2xl shadow-black/50 transition-colors hover:border-white/15"
-          >
-            {/* Top Model Chips */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-3 mb-3 border-b border-white/[0.06] text-xs">
-              <span className="text-[11px] font-mono text-zinc-500 mr-1 hidden sm:inline">
-                Model:
-              </span>
-              {QUICK_MODELS.map((m) => {
-                const isActive = selectedModel === m.id;
-                return (
+        {/* Interactive Dynamic Prompt Capsule */}
+        <div className="mt-12 mx-auto max-w-3xl text-left">
+          <div className="rounded-2xl border border-white/[0.08] bg-[#1a1a1a]/95 p-4 sm:p-5 shadow-2xl shadow-black/50 transition-all">
+            {/* Header: Model Chips & Understated Dot Meter */}
+            <div className="flex items-center justify-between gap-3 pb-3 mb-3 border-b border-white/[0.06]">
+              {/* Model selection chips */}
+              <div className="flex items-center gap-1.5 overflow-x-auto text-xs scrollbar-none pb-0.5">
+                {QUICK_MODELS.map((m) => {
+                  const isActive = selectedModel === m.id;
+                  const isPaid = m.isPaid;
+                  return (
+                    <button
+                      key={m.id}
+                      type="button"
+                      disabled={isPaid}
+                      onClick={() => {
+                        if (!isPaid) setSelectedModel(m.id);
+                      }}
+                      title={
+                        isPaid
+                          ? `${m.name} is a Plus model. Free trial includes DeepSeek R1 and Gemini.`
+                          : undefined
+                      }
+                      className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs transition-all shrink-0 ${
+                        isPaid
+                          ? "opacity-35 cursor-not-allowed text-zinc-500 border border-transparent select-none"
+                          : isActive
+                          ? "bg-white/10 text-white font-medium border border-white/20 cursor-pointer"
+                          : "text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04] border border-transparent cursor-pointer"
+                      }`}
+                    >
+                      {isPaid && <Lock className="h-2.5 w-2.5 text-zinc-500 shrink-0" />}
+                      <span>{m.name}</span>
+                      <span className="text-[10px] text-zinc-500 font-mono hidden sm:inline">
+                        {isPaid ? "Plus" : m.badge}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Minimalist dot indicators */}
+              <div className="flex items-center gap-2 text-xs shrink-0">
+                <div
+                  className="flex items-center gap-1.5 text-[11px] font-mono text-zinc-400"
+                  title={`${remainingCredits} free prompts remaining`}
+                >
+                  <span className="flex items-center gap-1">
+                    <span
+                      className={`h-1.5 w-1.5 rounded-full transition-colors ${
+                        remainingCredits >= 1 ? "bg-white/80" : "bg-white/20"
+                      }`}
+                    />
+                    <span
+                      className={`h-1.5 w-1.5 rounded-full transition-colors ${
+                        remainingCredits >= 2 ? "bg-white/80" : "bg-white/20"
+                      }`}
+                    />
+                  </span>
+                  <span className="text-zinc-500">
+                    {remainingCredits > 0 ? `${remainingCredits} left` : "Limit"}
+                  </span>
+                </div>
+
+                {hasMessages && (
                   <button
-                    key={m.id}
                     type="button"
-                    onClick={() => setSelectedModel(m.id)}
-                    className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs transition-all ${
-                      isActive
-                        ? "bg-white/10 text-white font-medium border border-white/20"
-                        : "text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04] border border-transparent"
-                    }`}
+                    onClick={handleClearChat}
+                    className="text-zinc-500 hover:text-zinc-300 transition-colors p-1 rounded hover:bg-white/[0.05] cursor-pointer"
+                    title="Reset conversation"
                   >
-                    <span>{m.name}</span>
-                    <span className="text-[10px] text-zinc-500 font-mono hidden sm:inline">
-                      {m.badge}
-                    </span>
+                    <RotateCcw className="h-3 w-3" />
                   </button>
-                );
-              })}
+                )}
+              </div>
             </div>
 
-            {/* Prompt Input Row */}
-            <div className="flex items-center gap-3">
+            {/* Live Chat Stream Display */}
+            {hasMessages && (
+              <div
+                ref={chatContainerRef}
+                className="max-h-[340px] sm:max-h-[400px] overflow-y-auto space-y-3.5 pr-1.5 mb-4 scrollbar-thin scrollbar-thumb-white/10"
+              >
+                {messages.map((m, idx) => {
+                  const isUser = m.role === "user";
+                  const isLastAssistant = !isUser && idx === messages.length - 1 && animatingLast;
+
+                  return (
+                    <div
+                      key={idx}
+                      className={`flex flex-col gap-1.5 ${
+                        isUser ? "items-end" : "items-start"
+                      }`}
+                    >
+                      {/* Message Meta */}
+                      <div className="flex items-center gap-1.5 text-[10px] font-mono text-zinc-500 px-1">
+                        <span>
+                          {isUser
+                            ? "You"
+                            : QUICK_MODELS.find((mod) => mod.id === m.model)?.name || "Assistant"}
+                        </span>
+                      </div>
+
+                      {/* Message Content Bubble */}
+                      <div
+                        className={`group relative max-w-[92%] sm:max-w-[85%] rounded-xl px-3.5 py-2.5 text-xs sm:text-sm leading-relaxed ${
+                          isUser
+                            ? "bg-white/[0.08] text-white border border-white/10"
+                            : "bg-[#141414] text-zinc-200 border border-white/[0.06]"
+                        }`}
+                      >
+                        {isUser ? (
+                          <div className="whitespace-pre-wrap font-sans">{m.content}</div>
+                        ) : (
+                          <TypingResponse
+                            content={m.content}
+                            isNew={isLastAssistant}
+                            onProgress={scrollContainerToBottom}
+                            onComplete={handleTypingComplete}
+                          />
+                        )}
+
+                        {!isUser && (
+                          <div className="mt-2 pt-1.5 border-t border-white/[0.04] flex items-center justify-end">
+                            <button
+                              type="button"
+                              onClick={() => handleCopy(m.content, idx)}
+                              className="text-zinc-500 hover:text-zinc-300 transition-colors flex items-center gap-1 text-[10px] cursor-pointer"
+                            >
+                              {copiedIndex === idx ? (
+                                <>
+                                  <Check className="h-3 w-3 text-emerald-400" />
+                                  <span className="text-emerald-400">Copied</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="h-3 w-3" />
+                                  <span>Copy</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Playful Thinking indicator */}
+                {isLoading && (
+                  <div className="flex flex-col items-start gap-1.5">
+                    <span className="text-[10px] font-mono text-zinc-500 px-1">
+                      {currentModelObj.name}
+                    </span>
+                    <div className="flex items-center gap-2.5 rounded-xl bg-[#141414] border border-white/[0.06] px-3.5 py-2.5 text-xs text-zinc-400">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-zinc-400 shrink-0" />
+                      <span className="text-zinc-300 font-mono text-[11px] animate-pulse">
+                        {activeThinkingText}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Minimal Inline Limit Banner */}
+            {remainingCredits <= 0 && !isLoading && (
+              <div className="mb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 rounded-xl border border-white/[0.08] bg-white/[0.02] px-3.5 py-2.5 text-xs text-zinc-400">
+                <span>Free preview limit reached.</span>
+                <div className="flex items-center gap-3">
+                  <Link
+                    href="/auth/signup"
+                    className="text-white hover:text-zinc-200 font-medium transition-colors"
+                  >
+                    Sign up free →
+                  </Link>
+                  <span className="text-zinc-600">•</span>
+                  <Link
+                    href="/auth/signin"
+                    className="text-zinc-400 hover:text-white transition-colors"
+                  >
+                    Sign in
+                  </Link>
+                </div>
+              </div>
+            )}
+
+            {/* Dynamic Prompt Input */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSendPrompt();
+              }}
+              className="flex items-center gap-3"
+            >
               <input
+                ref={inputRef}
                 type="text"
                 value={promptText}
                 onChange={(e) => setPromptText(e.target.value)}
-                placeholder="Ask anything, reason through code, or synthesize imagery..."
-                className="w-full bg-transparent text-sm text-zinc-100 placeholder-zinc-500 outline-none"
+                placeholder={
+                  remainingCredits > 0
+                    ? hasMessages
+                      ? `Ask a follow-up with ${currentModelObj.name}...`
+                      : `Ask ${currentModelObj.name} anything...`
+                    : "Create an account to keep chatting..."
+                }
+                disabled={isLoading || remainingCredits <= 0}
+                className="w-full bg-transparent text-xs sm:text-sm text-zinc-100 placeholder-zinc-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed"
               />
+
               <button
                 type="submit"
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white text-black hover:bg-zinc-200 transition-transform active:scale-95"
-                aria-label="Send prompt to chat"
+                disabled={isLoading || !promptText.trim() || remainingCredits <= 0}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white text-black hover:bg-zinc-200 disabled:opacity-30 disabled:hover:bg-white disabled:cursor-not-allowed transition-all active:scale-95 cursor-pointer"
+                aria-label="Send prompt"
               >
-                <ArrowUp className="h-4 w-4" />
+                {isLoading ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <ArrowUp className="h-4 w-4" />
+                )}
               </button>
-            </div>
+            </form>
 
-            {/* Quick Suggestions Strip */}
-            <div className="mt-4 pt-3 border-t border-white/[0.04] flex flex-wrap items-center gap-2 text-[11px]">
-              <span className="text-zinc-500 font-mono flex items-center gap-1">
-                <Sparkles className="h-3 w-3 text-zinc-400" />
-                <span>Try:</span>
-              </span>
-              {SUGGESTIONS.map((s, i) => (
-                <Link
-                  key={i}
-                  href={s.href}
-                  className="rounded-md bg-white/[0.03] px-2 py-1 text-zinc-400 hover:text-white hover:bg-white/[0.06] transition-colors truncate"
-                >
-                  {s.label}
-                </Link>
-              ))}
-            </div>
-          </form>
+            {/* Suggestions (Initially shown when empty) */}
+            {!hasMessages && (
+              <div className="mt-4 pt-3 border-t border-white/[0.04] flex flex-wrap items-center gap-2 text-[11px]">
+                <span className="text-zinc-500 font-mono flex items-center gap-1">
+                  <Sparkles className="h-3 w-3 text-zinc-400" />
+                  <span>Try:</span>
+                </span>
+                {SUGGESTIONS.map((suggestion, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => {
+                      setPromptText(suggestion);
+                      handleSendPrompt(suggestion);
+                    }}
+                    className="rounded-md bg-white/[0.03] px-2 py-1 text-zinc-400 hover:text-white hover:bg-white/[0.06] transition-colors truncate text-left cursor-pointer border border-white/[0.03] hover:border-white/10"
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </section>

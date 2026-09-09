@@ -69,3 +69,67 @@ export function deleteStoredThread(id: string, userId?: string): void {
     console.error("Failed to delete thread from localStorage", e);
   }
 }
+
+// ==========================================
+// Guest Trial & LocalStorage Identity System
+// ==========================================
+export const GUEST_MAX_CREDITS = 2;
+const GUEST_ID_KEY = "oagpt_guest_id";
+const GUEST_CREDITS_KEY = "oagpt_guest_credits_used";
+const GUEST_MESSAGES_KEY = "oagpt_guest_messages";
+
+export function getOrCreateGuestId(): string {
+  if (typeof window === "undefined") return "guest";
+  let guestId = localStorage.getItem(GUEST_ID_KEY);
+  if (!guestId) {
+    guestId = `guest_${Math.random().toString(36).substring(2, 9)}_${Date.now().toString(36)}`;
+    localStorage.setItem(GUEST_ID_KEY, guestId);
+  }
+  return guestId;
+}
+
+export function getGuestCreditsUsed(): number {
+  if (typeof window === "undefined") return 0;
+  const val = localStorage.getItem(GUEST_CREDITS_KEY);
+  return val ? parseInt(val, 10) || 0 : 0;
+}
+
+export function getGuestRemainingCredits(): number {
+  const used = getGuestCreditsUsed();
+  return Math.max(0, GUEST_MAX_CREDITS - used);
+}
+
+export function incrementGuestCredits(): number {
+  if (typeof window === "undefined") return 0;
+  const current = getGuestCreditsUsed();
+  const next = current + 1;
+  localStorage.setItem(GUEST_CREDITS_KEY, next.toString());
+  window.dispatchEvent(new Event("oagpt_guest_updated"));
+  return next;
+}
+
+export function getGuestMessages(): ChatMessage[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const data = localStorage.getItem(GUEST_MESSAGES_KEY);
+    return data ? JSON.parse(data) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveGuestMessages(messages: ChatMessage[]): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(GUEST_MESSAGES_KEY, JSON.stringify(messages));
+    window.dispatchEvent(new Event("oagpt_guest_updated"));
+  } catch (e: unknown) {
+    console.error("Failed to save guest messages", e);
+  }
+}
+
+export function clearGuestMessages(): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(GUEST_MESSAGES_KEY);
+  window.dispatchEvent(new Event("oagpt_guest_updated"));
+}
